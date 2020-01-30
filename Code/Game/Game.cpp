@@ -95,6 +95,10 @@ void Game::StartUp()
 	//Get the Shader
 	m_shader = g_renderContext->CreateOrGetShaderFromFile(m_xmlShaderPath);
 	m_shader->SetDepth(eCompareOp::COMPARE_LEQUAL, true);
+
+	//Debug
+	TODO("Remove this after testing");
+	MakeConvexPoly2DFromDisc(Vec2(50.f, 100.f), 100.f);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -405,11 +409,13 @@ void Game::Render() const
 
 	g_renderContext->BindShader( m_shader );
 
-	//RenderAllGeometry();
+	RenderAllGeometry();
 
 	RenderWorldBounds();
 
 	//RenderPersistantUI();
+
+	DebugRenderTestRandomPointsOnScreen();
 
 	if(m_toggleUI)
 	{
@@ -452,6 +458,17 @@ void Game::RenderAllGeometry() const
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+void Game::DebugRenderTestRandomPointsOnScreen() const
+{
+	//Debugging if the RandomPointsOnCircleAreCorrect
+	float angleUsed;
+	Vec2 randomPoint = GetRandomPointOnDisc2D(Vec2(50.f, 50.f), 50.f, 0.f, 360.f, angleUsed);
+	g_debugRenderer->DebugRenderPoint2D(randomPoint, 1.f, 5.f);
+
+	g_debugRenderer->DebugRenderDisc2D(Disc2D(Vec2(50.f, 50.f), 10.f), 0.f);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 void Game::DebugRenderToScreen() const
 {
 	Camera& debugCamera = g_debugRenderer->Get2DCamera();
@@ -478,6 +495,37 @@ void Game::DebugRenderToCamera() const
 	g_debugRenderer->DebugRenderToCamera();
 
 	g_renderContext->EndCamera();
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const
+{
+	std::vector<Vec2> convexPolyPoints;
+
+	float startAngle;
+	Vec2 point = GetRandomPointOnDisc2D(center, radius, 10.f, 170.f, startAngle);
+	convexPolyPoints.push_back(point);
+
+	float currentAngle = startAngle;
+	bool completedCircle = false;
+
+	while (!completedCircle)
+	{
+		point = GetRandomPointOnDisc2D(center, radius, currentAngle - 10.f, currentAngle + 170.f, currentAngle);
+		convexPolyPoints.push_back(point);
+
+		if (currentAngle > 360.f)
+		{
+			completedCircle = true;
+		}
+	}
+
+	for (int i = 0; i < convexPolyPoints.size(); i++)
+	{
+		g_debugRenderer->DebugRenderPoint2D(convexPolyPoints[i], 10.f, 10.f);
+	}
+
+	g_debugRenderer->DebugRenderPoint2D(center, 5.f, 20.f);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------

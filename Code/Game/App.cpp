@@ -16,6 +16,7 @@
 #include "Engine/Renderer/RenderContext.hpp"
 //Game Systems
 #include "Game/Game.hpp"
+#include "Engine/Math/RandomNumberGenerator.hpp"
 
 //Globals
 App* g_theApp = nullptr;
@@ -74,6 +75,9 @@ void App::StartUp()
 	//Create event system
 	g_eventSystem = new EventSystems();
 
+	//Create the random number generator
+	g_RNG = new RandomNumberGenerator();
+
 	//Create the Render Context
 	//g_renderContext = new RenderContext();
 	//g_renderContext->Startup();
@@ -125,6 +129,9 @@ void App::ShutDown()
 
 	delete g_devConsole;
 	g_devConsole = nullptr;
+
+	delete g_RNG;
+	g_RNG = nullptr;
 
 	delete g_eventSystem;
 	g_eventSystem = nullptr;

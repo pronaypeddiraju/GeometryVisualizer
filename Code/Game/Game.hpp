@@ -51,8 +51,11 @@ public:
 	void					RenderPersistantUI() const;
 	void					RenderAllGeometry() const;
 
+	void					DebugRenderTestRandomPointsOnScreen() const;
 	void					DebugRenderToScreen() const;
 	void					DebugRenderToCamera() const;
+
+	void					MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const;
 
 	void					PostRender();
 
