@@ -1,0 +1,67 @@
+<SavedGeometry>
+    <GeometryData>
+        <RigidBody SimType="0" Shape="3" Mass="inf" Friction="1" AngularDrag="0.1" LinearDrag="0.1" Freedom="0.000000,1.000000,0.000000" Moment="inf" Restitution="1"/>
+        <Collider Center="150.000000,10.000000" Size="80.000000,10.000000" Rotation="0"/>
+        <Transform Position="150.000000,10.000000" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="0" Shape="3" Mass="inf" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="0.000000,0.000000,0.000000" Moment="inf" Restitution="0.5"/>
+        <Collider Center="89.621559,41.777405" Size="4.743658,60.817619" Rotation="36.843201"/>
+        <Transform Position="89.621559,41.777405" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="0" Shape="3" Mass="inf" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="0.000000,0.000000,0.000000" Moment="inf" Restitution="0.5"/>
+        <Collider Center="82.138763,86.295685" Size="9.416273,41.960613" Rotation="-34.168869"/>
+        <Transform Position="82.138763,86.295685" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="0" Shape="3" Mass="inf" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="0.000000,0.000000,0.000000" Moment="inf" Restitution="0.5"/>
+        <Collider Center="141.829132,106.395340" Size="3.968966,86.189049" Rotation="-89.226974"/>
+        <Transform Position="141.829132,106.395340" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="0" Shape="3" Mass="inf" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="0.000000,0.000000,0.000000" Moment="inf" Restitution="0.5"/>
+        <Collider Center="207.454132,92.109634" Size="3.497176,41.548347" Rotation="233.43661"/>
+        <Transform Position="207.454132,92.109634" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="0" Shape="3" Mass="inf" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="0.000000,0.000000,0.000000" Moment="inf" Restitution="0.5"/>
+        <Collider Center="210.980499,46.179401" Size="6.056415,61.407665" Rotation="154.6218"/>
+        <Transform Position="210.980499,46.179401" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="0" Shape="2" Mass="inf" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="0.000000,0.000000,0.000000" Moment="-nan(ind)" Restitution="0.5"/>
+        <Collider Start="147.763763,62.126247" End="147.763763,62.126247" Radius="3.6986487"/>
+        <Transform Position="147.763763,62.126247" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="1" Shape="2" Mass="1" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="1.000000,1.000000,1.000000" Moment="12.215535" Restitution="0.5"/>
+        <Collider Start="111.811920,84.883720" End="111.811920,84.883720" Radius="4.9427795"/>
+        <Transform Position="148.017044,20.309713" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="1" Shape="2" Mass="1" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="1.000000,1.000000,1.000000" Moment="6.6415133" Restitution="0.5"/>
+        <Collider Start="177.006882,86.212624" End="177.006882,86.212624" Radius="3.6445887"/>
+        <Transform Position="153.250793,27.338913" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="1" Shape="2" Mass="1" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="1.000000,1.000000,1.000000" Moment="6.2252827" Restitution="0.5"/>
+        <Collider Start="182.855499,58.803986" End="182.855499,58.803986" Radius="3.5285358"/>
+        <Transform Position="192.177338,17.737553" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="1" Shape="2" Mass="1" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="1.000000,1.000000,1.000000" Moment="5.8846593" Restitution="0.5"/>
+        <Collider Start="151.376160,43.521595" End="151.376160,43.521595" Radius="3.430644"/>
+        <Transform Position="157.621201,18.451241" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="1" Shape="2" Mass="1" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="1.000000,1.000000,1.000000" Moment="130.51913" Restitution="0.5"/>
+        <Collider Start="130.045883,83.554817" End="163.761459,91.196007" Radius="3.737525"/>
+        <Transform Position="142.919342,67.875389" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+    <GeometryData>
+        <RigidBody SimType="1" Shape="2" Mass="1" Friction="0.5" AngularDrag="0" LinearDrag="0" Freedom="1.000000,1.000000,1.000000" Moment="63.220329" Restitution="0.5"/>
+        <Collider Start="178.555054,78.737541" End="200.057327,68.106308" Radius="2.6635997"/>
+        <Transform Position="179.282928,20.757236" Rotation="0" Scale="1.000000,1.000000"/>
+    </GeometryData>
+</SavedGeometry>
