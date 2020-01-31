@@ -28,7 +28,7 @@ public:
 
 private:
 	Vec2			m_cursorPosition = Vec2::ZERO;
-	Rgba			m_cursorColor = Rgba::WHITE;
+	Rgba			m_cursorColor = Rgba::ORGANIC_RED;
 	float			m_cursorThickness = 0.15f;
 	float			m_cursorRingRadius = 1.0f;
 

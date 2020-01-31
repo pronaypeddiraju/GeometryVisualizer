@@ -31,7 +31,7 @@ Geometry::Geometry(PhysicsSystem& physicsSystem, eSimulationType simulationType,
 
 		if(!staticFloor)
 		{
-			thickness = g_randomNumGen->GetRandomFloatInRange(BOX_MIN_WIDTH, BOX_MAX_WIDTH);
+			thickness = g_RNG->GetRandomFloatInRange(BOX_MIN_WIDTH, BOX_MAX_WIDTH);
 
 			minBounds = Vec2(-thickness, -thickness);
 			maxBounds = Vec2(thickness, thickness);
@@ -55,7 +55,7 @@ Geometry::Geometry(PhysicsSystem& physicsSystem, eSimulationType simulationType,
 	break;
 	case DISC_GEOMETRY:
 	{
-		float radius = g_randomNumGen->GetRandomFloatInRange(DISC_MIN_RADIUS, DISC_MAX_RADIUS);
+		float radius = g_RNG->GetRandomFloatInRange(DISC_MIN_RADIUS, DISC_MAX_RADIUS);
 
 		m_collider = m_rigidbody->SetCollider(new Disc2DCollider(Vec2::ZERO, radius));
 		m_collider->m_colliderType = COLLIDER_DISC;
@@ -68,7 +68,7 @@ Geometry::Geometry(PhysicsSystem& physicsSystem, eSimulationType simulationType,
 
 		if(!staticFloor)
 		{
-			size = Vec2(g_randomNumGen->GetRandomFloatInRange(BOX_MIN_WIDTH, BOX_MAX_WIDTH), length);
+			size = Vec2(g_RNG->GetRandomFloatInRange(BOX_MIN_WIDTH, BOX_MAX_WIDTH), length);
 		}
 		else
 		{
@@ -83,7 +83,7 @@ Geometry::Geometry(PhysicsSystem& physicsSystem, eSimulationType simulationType,
 	break;
 	case CAPSULE_GEOMETRY:
 	{
-		float radius = g_randomNumGen->GetRandomFloatInRange(DISC_MIN_RADIUS, DISC_MAX_RADIUS);
+		float radius = g_RNG->GetRandomFloatInRange(DISC_MIN_RADIUS, DISC_MAX_RADIUS);
 
 		m_transform.m_position ;
 

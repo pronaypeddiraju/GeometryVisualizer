@@ -32,8 +32,14 @@ constexpr float MAX_ZOOM_STEPS = 10.f;
 
 constexpr float CLIENT_ASPECT = 2.0f; // We are requesting a 1:1 aspect (square) window area
 
+constexpr int INIT_NUM_POLYGONS = 8;
+constexpr int INIT_NUM_RAYCASTS = 1024;
+
+constexpr float MIN_CONSTRUCTION_RADIUS = 25.f;
+constexpr float MAX_CONSTRUCTION_RADIUS = 150.f;
+constexpr float BUFFER_SPACE = 20.f;
+
 extern AudioSystem* g_audio;
 extern Clock* g_gameClock;
 extern InputSystem* g_inputSystem;
-extern RandomNumberGenerator* g_randomNumGen;
 extern RenderContext* g_renderContext;

@@ -103,6 +103,9 @@ void App::StartUp()
 	//create the networking system
 	//g_networkSystem = new NetworkSystem();
 
+	//Create the ImGUI system
+	g_ImGUI = new ImGUISystem(g_renderContext);
+
 	//Create the game here
 	m_game = new Game();
 	m_game->StartUp();
@@ -114,6 +117,9 @@ void App::ShutDown()
 {
 	m_game->ShutDown();
 	delete m_game;
+
+	delete g_ImGUI;
+	g_ImGUI = nullptr;
 
 	delete g_renderContext;
 	g_renderContext = nullptr;
@@ -158,6 +164,7 @@ void App::EndFrame()
 	g_inputSystem->EndFrame();
 	g_audio->EndFrame();
 	g_eventSystem->EndFrame();
+	g_ImGUI->EndFrame();
 	g_devConsole->EndFrame();
 }
 
@@ -168,6 +175,7 @@ void App::BeginFrame()
 	g_inputSystem->BeginFrame();
 	g_audio->BeginFrame();
 	g_eventSystem->BeginFrame();
+	g_ImGUI->BeginFrame();
 	g_devConsole->BeginFrame();
 }
 

@@ -4,6 +4,7 @@
 #include "Engine/Audio/AudioSystem.hpp"
 #include "Engine/Core/XMLUtils/XMLUtils.hpp"
 #include "Engine/Math/AABB2.hpp"
+#include "Engine/Math/ConvexPoly2D.hpp"
 #include "Engine/Math/Vertex_PCU.hpp"
 
 //Game systems
@@ -44,8 +45,27 @@ public:
 	//bool					HandleMouseRBDown();
 	//bool					HandleMouseRBUp();
 	//bool					HandleMouseScroll(float wheelDelta);
-
+	
 	void					Render() const;
+	ConvexPoly2D			MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const;
+
+	void					PostRender();
+
+	void					Update( float deltaTime );
+	void					ClearGarbageEntities();
+
+	bool					IsAlive();
+
+	static Vec2				GetClientToWorldPosition2D(IntVec2 mousePosInClient, IntVec2 ClientBounds);
+
+private:
+	void					CreateConvexPolygons(int numPolygons);
+	
+	void					UpdateGeometry( float deltaTime );
+	void					UpdateCamera( float deltaTime );
+	void					UpdateCameraMovement(unsigned char keyCode);
+	void					UpdateImGUI();
+
 	void					RenderWorldBounds() const;
 	void					RenderOnScreenInfo() const;
 	void					RenderPersistantUI() const;
@@ -55,20 +75,6 @@ public:
 	void					DebugRenderToScreen() const;
 	void					DebugRenderToCamera() const;
 
-	void					MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const;
-
-	void					PostRender();
-
-	void					Update( float deltaTime );
-	void					UpdateGeometry( float deltaTime );
-	void					UpdateCamera( float deltaTime );
-	void					UpdateCameraMovement(unsigned char keyCode);
-
-	void					ClearGarbageEntities();
-
-	bool					IsAlive();
-
-	static Vec2				GetClientToWorldPosition2D(IntVec2 mousePosInClient, IntVec2 ClientBounds);
 
 private:
 
@@ -97,4 +103,11 @@ public:
 	bool					m_isDebugSetup = false;
 	Vec2					m_debugOffset = Vec2(20.f, 20.f);
 	float					m_debugFontHeight = 2.f;
+
+	//ImGUI Widget Variables
+	float ui_cameraClearColor[3] = { 1.f, 1.f, 1.f };
+
+	//Convex Geometry created in Game
+	std::vector<ConvexPoly2D>	m_convexPolys;
+	
 };

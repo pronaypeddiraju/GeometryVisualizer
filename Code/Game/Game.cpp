@@ -27,9 +27,7 @@
 #include "Game/GameCursor.hpp"
 
 //Globals
-Rgba* g_clearScreenColor = nullptr;
 float g_shakeAmount = 0.0f;
-RandomNumberGenerator* g_randomNumGen;
 bool g_debugMode = false;
 
 eSimulationType g_selectedSimType = STATIC_SIMULATION;
@@ -46,7 +44,6 @@ Game::Game()
 
 	g_devConsole->SetBitmapFont(*m_squirrelFont);
 	g_debugRenderer->SetDebugFont(m_squirrelFont);
-	g_randomNumGen = new RandomNumberGenerator();
 
 	g_devConsole->PrintString(Rgba::BLUE, "this is a test string");
 	//g_devConsole->PrintString(Rgba::RED, "this is also a test string");
@@ -72,7 +69,6 @@ void Game::StartUp()
 	g_windowContext->SetMouseMode(MOUSE_MODE_ABSOLUTE);
 	g_windowContext->HideMouse();
 
-	g_clearScreenColor = new Rgba(0.f, 0.f, 0.f, 1.f);
 	m_gameCursor = new GameCursor();
 
 	//Create the world bounds AABB2
@@ -96,9 +92,20 @@ void Game::StartUp()
 	m_shader = g_renderContext->CreateOrGetShaderFromFile(m_xmlShaderPath);
 	m_shader->SetDepth(eCompareOp::COMPARE_LEQUAL, true);
 
-	//Debug
-	TODO("Remove this after testing");
-	MakeConvexPoly2DFromDisc(Vec2(50.f, 100.f), 100.f);
+	//Generate Random Convex Polygons to render on screen
+	CreateConvexPolygons(INIT_NUM_POLYGONS);
+	//CreateRaycasts(INIT_NUM_RAYCASTS);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::UpdateImGUI()
+{
+	//Use this function to create and use an ImGUI widget
+	ImGui::Begin("Geometry Visualizer");
+
+	ImGui::ColorEdit3("Scene Background Color", (float*)&ui_cameraClearColor); // Edit 3 floats representing a color
+
+	ImGui::End();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -405,7 +412,7 @@ void Game::Render() const
 
 	g_renderContext->BindTextureViewWithSampler(0U, nullptr);
 		
-	g_renderContext->ClearColorTargets(*g_clearScreenColor);
+	g_renderContext->ClearColorTargets(Rgba(ui_cameraClearColor[0], ui_cameraClearColor[1], ui_cameraClearColor[2], 1.f));
 
 	g_renderContext->BindShader( m_shader );
 
@@ -421,6 +428,8 @@ void Game::Render() const
 	{
 		//RenderOnScreenInfo();
 	}
+
+	g_ImGUI->Render();
 
 	m_gameCursor->Render();
 
@@ -498,7 +507,7 @@ void Game::DebugRenderToCamera() const
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
-void Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const
+ConvexPoly2D Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const
 {
 	std::vector<Vec2> convexPolyPoints;
 
@@ -520,12 +529,8 @@ void Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const
 		}
 	}
 
-	for (int i = 0; i < convexPolyPoints.size(); i++)
-	{
-		g_debugRenderer->DebugRenderPoint2D(convexPolyPoints[i], 10.f, 10.f);
-	}
-
-	g_debugRenderer->DebugRenderPoint2D(center, 5.f, 20.f);
+	ConvexPoly2D polygon(convexPolyPoints);
+	return polygon;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -563,6 +568,7 @@ void Game::Update( float deltaTime )
 		m_consoleDebugOnce = true;
 	}
 
+	UpdateImGUI();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -578,8 +584,8 @@ void Game::UpdateCamera(float deltaTime)
 
 	if(g_shakeAmount > 0)
 	{
-		shakeX = g_randomNumGen->GetRandomFloatInRange(-g_shakeAmount, g_shakeAmount);
-		shakeY = g_randomNumGen->GetRandomFloatInRange(-g_shakeAmount, g_shakeAmount);
+		shakeX = g_RNG->GetRandomFloatInRange(-g_shakeAmount, g_shakeAmount);
+		shakeY = g_RNG->GetRandomFloatInRange(-g_shakeAmount, g_shakeAmount);
 
 		g_shakeAmount -= deltaTime * CAMERA_SHAKE_REDUCTION_PER_SECOND;
 	}
@@ -679,4 +685,37 @@ STATIC Vec2 Game::GetClientToWorldPosition2D( IntVec2 mousePosInClient, IntVec2 
 	float posOnY = RangeMapFloat(static_cast<float>(mousePosInClient.y), static_cast<float>(ClientBounds.y), 0.f, 0.f, WORLD_HEIGHT);
 
 	return Vec2(posOnX, posOnY);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::CreateConvexPolygons(int numPolygons)
+{
+	//early out if we have the correct number of polygons
+	if (numPolygons == m_convexPolys.size())
+		return;
+
+	//If we have lesser than what we need, let's make some
+	if (numPolygons > m_convexPolys.size())
+	{
+		for (int polygonIndex = 0; polygonIndex < INIT_NUM_POLYGONS; polygonIndex++)
+		{
+			//Make polygons here and push them into the vector
+			float randomRadius = g_RNG->GetRandomFloatInRange(MIN_CONSTRUCTION_RADIUS, MAX_CONSTRUCTION_RADIUS);
+
+			Vec2 randomPosition;
+			randomPosition.x = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.x + randomRadius + BUFFER_SPACE, m_worldBounds.m_maxBounds.x - randomRadius - BUFFER_SPACE);
+			randomPosition.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + randomRadius + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - randomRadius - BUFFER_SPACE);
+
+			ConvexPoly2D polygon = MakeConvexPoly2DFromDisc(randomPosition, randomRadius);
+			m_convexPolys.push_back(polygon);
+		}
+	}
+	else
+	{
+		//We have more polygons than we need do just discard some of them
+		while (m_convexPolys.size() > numPolygons)
+		{
+			m_convexPolys.pop_back();
+		}
+	}
 }

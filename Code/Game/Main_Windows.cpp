@@ -23,6 +23,9 @@ HGLRC g_openGLRenderingContext = nullptr;
 WindowContext* g_windowContext = nullptr;
 const char* APP_NAME = "Pachinko";	
 
+//The WndProc function for imGUI third party tool
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 //-----------------------------------------------------------------------------------------------
 // Handles Windows (Win32) messages/events; i.e. the OS is trying to tell us something happened.
 // This function is called by Windows whenever we ask it for notifications
@@ -31,6 +34,16 @@ static bool AppWindowProc( void* windowHandle, uint32_t wmMessageCode, uintptr_t
 	UNREFERENCED_PARAMETER(windowHandle); 
 	UNREFERENCED_PARAMETER(wParam); 
 	UNREFERENCED_PARAMETER(lParam); 
+
+	bool handled = ImGui_ImplWin32_WndProcHandler((HWND)windowHandle, wmMessageCode, wParam, lParam);
+
+	if (g_ImGUI != nullptr)
+	{
+		const ImGuiIO& io = ImGui::GetIO();
+		if (handled || io.WantCaptureMouse) {
+			return false; // ImGui WILL handle it later
+		}
+	}
 
 	switch( wmMessageCode )
 	{
