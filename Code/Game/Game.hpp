@@ -5,6 +5,7 @@
 #include "Engine/Core/XMLUtils/XMLUtils.hpp"
 #include "Engine/Math/AABB2.hpp"
 #include "Engine/Math/ConvexPoly2D.hpp"
+#include "Engine/Math/Ray2D.hpp"
 #include "Engine/Math/Vertex_PCU.hpp"
 
 //Game systems
@@ -60,6 +61,7 @@ public:
 
 private:
 	void					CreateConvexPolygons(int numPolygons);
+	void					CreateRaycasts(int numRaycasts);
 	
 	void					UpdateGeometry( float deltaTime );
 	void					UpdateCamera( float deltaTime );
@@ -106,8 +108,22 @@ public:
 
 	//ImGUI Widget Variables
 	float ui_cameraClearColor[3] = { 1.f, 1.f, 1.f };
+	float ui_polygonColor[3] = {0.5f, 0.5f, 0.5f};
+
+	int ui_numPolygons = INIT_NUM_POLYGONS;
+	int ui_minPolygons = 1;
+	int ui_maxPolygons = 1000;
+
+	int ui_numRays = INIT_NUM_RAYCASTS;
+	int ui_minRays = 1;
+	int ui_maxRays = 4096;
 
 	//Convex Geometry created in Game
 	std::vector<ConvexPoly2D>	m_convexPolys;
-	
+	int							m_numPolygonsLastFrame;
+	//Rgba						m_polygonColor = Rgba::ORGANIC_GREY;
+
+	//Raycasts in the scene
+	std::vector<Ray2D>			m_rays;
+	int							m_numRaysLastFrame;
 };

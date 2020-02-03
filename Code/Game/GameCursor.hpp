@@ -29,8 +29,8 @@ public:
 private:
 	Vec2			m_cursorPosition = Vec2::ZERO;
 	Rgba			m_cursorColor = Rgba::ORGANIC_RED;
-	float			m_cursorThickness = 0.15f;
-	float			m_cursorRingRadius = 1.0f;
+	float			m_cursorThickness = 0.25f;
+	float			m_cursorRingRadius = 1.25f;
 
 	//Movement Data
 	Vec2			m_movementVector = Vec2::ZERO;

@@ -35,9 +35,9 @@ constexpr float CLIENT_ASPECT = 2.0f; // We are requesting a 1:1 aspect (square)
 constexpr int INIT_NUM_POLYGONS = 8;
 constexpr int INIT_NUM_RAYCASTS = 1024;
 
-constexpr float MIN_CONSTRUCTION_RADIUS = 25.f;
-constexpr float MAX_CONSTRUCTION_RADIUS = 150.f;
-constexpr float BUFFER_SPACE = 20.f;
+constexpr float MIN_CONSTRUCTION_RADIUS = 5.f;
+constexpr float MAX_CONSTRUCTION_RADIUS = 20.f;
+constexpr float BUFFER_SPACE = 2.f;
 
 extern AudioSystem* g_audio;
 extern Clock* g_gameClock;

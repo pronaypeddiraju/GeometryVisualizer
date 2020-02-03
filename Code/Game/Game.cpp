@@ -3,6 +3,7 @@
 //Engine Systems
 #include "Engine/Commons/ErrorWarningAssert.hpp"
 #include "Engine/Commons/StringUtils.hpp"
+#include "Engine/Commons/UnitTest.hpp"
 #include "Engine/Core/Clock.hpp"
 #include "Engine/Core/DevConsole.hpp"
 #include "Engine/Core/EventSystems.hpp"
@@ -25,6 +26,9 @@
 
 //Game systems
 #include "Game/GameCursor.hpp"
+#include "Engine/Math/Ray2D.hpp"
+#include "Engine/Math/Plane2D.hpp"
+#include "Engine/Math/ConvexHull2D.hpp"
 
 //Globals
 float g_shakeAmount = 0.0f;
@@ -60,6 +64,51 @@ Game::~Game()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+UNITTEST("RaycastTests", "MathUtils", 1)
+{
+	Ray2D ray(Vec2(0.f, 0.f), Vec2(1.f, 0.f));
+	Plane2D plane(Vec2(1.f, 0.f), 10.f);
+	float out[2];
+	uint numHits = Raycast(out, ray, plane);
+
+	if (numHits > 0)
+	{
+		DebuggerPrintf("\n Num hits plane: %d", numHits);
+		DebuggerPrintf("\n First Hit: %f", out[0]);
+	}
+
+	Capsule2D capsule(Vec2(20.f, 0.f), 1.f);
+	numHits = Raycast(out, ray, capsule);
+
+	if (numHits > 0)
+	{
+		DebuggerPrintf("\n Num hits capsule: %d", numHits);
+		DebuggerPrintf("\n First Hit: %f", out[0]);
+	}
+
+	std::vector<Vec2> points = { Vec2(60.f, 40.f), Vec2(40.f, 60.f), Vec2(20.f, 40.f), Vec2(40.f, 20.f)};
+	ConvexPoly2D polygon(points);
+	ConvexHull2D hull;
+	int numPlanes = hull.GetNumPlanes();
+	float *hullOut = new float[numPlanes];
+	hull.MakeConvexHullFromConvexPolyon(polygon);
+	ray.m_direction = Vec2(1.f, 1.f);
+	ray.m_direction.Normalize();
+	numHits = Raycast(hullOut, ray, hull);
+	
+	if (numHits > 0)
+	{
+		DebuggerPrintf("\n Num hits Hull: %d", numHits);
+		DebuggerPrintf("\n First Hit: %f", hullOut[0]);
+	}
+
+	g_LogSystem->Logf("\n PrintFilter", "I am a Logf call");
+	g_LogSystem->Logf("\n FlushFilter", "I am now calling flush");
+	g_LogSystem->LogFlush();
+	return true;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 void Game::StartUp()
 {
 	//Setup mouse startup values
@@ -92,9 +141,16 @@ void Game::StartUp()
 	m_shader = g_renderContext->CreateOrGetShaderFromFile(m_xmlShaderPath);
 	m_shader->SetDepth(eCompareOp::COMPARE_LEQUAL, true);
 
+	//Setup the colors for UI
+	ui_polygonColor[0] = Rgba::ORGANIC_GREEN.r;
+	ui_polygonColor[1] = Rgba::ORGANIC_GREEN.g;
+	ui_polygonColor[2] = Rgba::ORGANIC_GREEN.b;
+
+	UnitTestRunAllCategories(10);
+
 	//Generate Random Convex Polygons to render on screen
 	CreateConvexPolygons(INIT_NUM_POLYGONS);
-	//CreateRaycasts(INIT_NUM_RAYCASTS);
+	CreateRaycasts(INIT_NUM_RAYCASTS);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -104,6 +160,41 @@ void Game::UpdateImGUI()
 	ImGui::Begin("Geometry Visualizer");
 
 	ImGui::ColorEdit3("Scene Background Color", (float*)&ui_cameraClearColor); // Edit 3 floats representing a color
+	ImGui::ColorEdit3("Polygon Color", (float*)ui_polygonColor);
+
+	ImGui::Text("Polygons :");
+	ImGui::SameLine();
+	if (ImGui::Button("Reduce by half"))
+	{
+		ui_numPolygons /= 2;
+		CreateConvexPolygons(ui_numPolygons);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("Double"))
+	{
+		ui_numPolygons *= 2;
+		CreateConvexPolygons(ui_numPolygons);
+	}
+
+	ImGui::SliderInt("Number of Polygons", &ui_numPolygons, ui_minPolygons, ui_maxPolygons);
+	
+	ImGui::Text("Rays :");
+	ImGui::SameLine();
+	if (ImGui::Button("Half"))
+	{
+		ui_numRays /= 2;
+		CreateRaycasts(ui_numRays);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("2X"))
+	{
+		ui_numRays *= 2;
+		CreateRaycasts(ui_numRays);
+	}
+
+	ImGui::SliderInt("Number of Rays", &ui_numRays, ui_minRays, ui_maxRays);
 
 	ImGui::End();
 }
@@ -422,8 +513,6 @@ void Game::Render() const
 
 	//RenderPersistantUI();
 
-	DebugRenderTestRandomPointsOnScreen();
-
 	if(m_toggleUI)
 	{
 		//RenderOnScreenInfo();
@@ -464,6 +553,15 @@ void Game::RenderPersistantUI() const
 void Game::RenderAllGeometry() const
 {
 	//Render all the geometry in the scene
+	std::vector<Vertex_PCU> convexPolyVerts;
+
+	for (int polygonIndex = 0; polygonIndex < m_convexPolys.size(); polygonIndex++)
+	{
+		AddVertsForSolidConvexPoly2D(convexPolyVerts, m_convexPolys[polygonIndex], Rgba(ui_polygonColor[0], ui_polygonColor[1], ui_polygonColor[2], 1.f));
+	}
+
+	g_renderContext->BindTextureViewWithSampler(0U, nullptr);
+	g_renderContext->DrawVertexArray(convexPolyVerts);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -542,7 +640,7 @@ void Game::PostRender()
 
 		ColorTargetView* ctv = g_renderContext->GetFrameColorTarget();
 		//Setup debug render client data
-		g_debugRenderer->SetClientDimensions( ctv->m_height, ctv->m_width );
+		g_debugRenderer->SetClientDimensions( WORLD_HEIGHT, WORLD_WIDTH);
 		g_debugRenderer->SetWorldSize2D(m_mainCamera->GetOrthoBottomLeft(), m_mainCamera->GetOrthoTopRight());
 
 		m_isDebugSetup = true;
@@ -566,6 +664,18 @@ void Game::Update( float deltaTime )
 		//We have rendered the 1st frame
 		m_devConsoleCamera->SetOrthoView(Vec2::ZERO, Vec2(WORLD_WIDTH, WORLD_HEIGHT));
 		m_consoleDebugOnce = true;
+	}
+
+	if (m_numPolygonsLastFrame != ui_numPolygons)
+	{
+		CreateConvexPolygons(ui_numPolygons);
+		m_numPolygonsLastFrame = ui_numPolygons;
+	}
+
+	if (m_numRaysLastFrame != ui_numRays)
+	{
+		CreateRaycasts(ui_numRays);
+		m_numRaysLastFrame = ui_numRays;
 	}
 
 	UpdateImGUI();
@@ -718,4 +828,41 @@ void Game::CreateConvexPolygons(int numPolygons)
 			m_convexPolys.pop_back();
 		}
 	}
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::CreateRaycasts(int numRaycasts)
+{
+	//early out if we have the correct number of rays
+	if (numRaycasts == m_rays.size())
+		return;
+
+	//If we have lesser than what we need, let's make some
+	if (numRaycasts > m_rays.size())
+	{
+		for (int rayIndex = 0; rayIndex < INIT_NUM_POLYGONS; rayIndex++)
+		{
+			//Make rays here and push them into the vector
+			Vec2 randomPosition;
+			randomPosition.x = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.x + BUFFER_SPACE, m_worldBounds.m_maxBounds.x - BUFFER_SPACE);
+			randomPosition.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - BUFFER_SPACE);
+
+			Vec2 randomDirection;
+			randomDirection.x = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.x + BUFFER_SPACE, m_worldBounds.m_maxBounds.x - BUFFER_SPACE);
+			randomDirection.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - BUFFER_SPACE);
+			randomDirection.Normalize();
+
+			Ray2D ray(randomPosition, randomDirection);
+			m_rays.push_back(ray);
+		}
+	}
+	else
+	{
+		//We have more rays than we need so just discard some of them
+		while (m_rays.size() > numRaycasts)
+		{
+			m_rays.pop_back();
+		}
+	}
+
 }

@@ -21,7 +21,7 @@ HWND g_hWnd = nullptr;
 HDC g_displayDeviceContext = nullptr;			
 HGLRC g_openGLRenderingContext = nullptr;		
 WindowContext* g_windowContext = nullptr;
-const char* APP_NAME = "Pachinko";	
+const char* APP_NAME = "Geometry Visualizer";	
 
 //The WndProc function for imGUI third party tool
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

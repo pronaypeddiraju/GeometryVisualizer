@@ -118,9 +118,6 @@ void App::ShutDown()
 	m_game->ShutDown();
 	delete m_game;
 
-	delete g_ImGUI;
-	g_ImGUI = nullptr;
-
 	delete g_renderContext;
 	g_renderContext = nullptr;
 
@@ -141,6 +138,9 @@ void App::ShutDown()
 
 	delete g_eventSystem;
 	g_eventSystem = nullptr;
+
+	delete g_ImGUI;
+	g_ImGUI = nullptr;
 }
 
 void App::RunFrame()
