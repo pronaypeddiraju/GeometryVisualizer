@@ -64,51 +64,6 @@ Game::~Game()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
-UNITTEST("RaycastTests", "MathUtils", 1)
-{
-	Ray2D ray(Vec2(0.f, 0.f), Vec2(1.f, 0.f));
-	Plane2D plane(Vec2(1.f, 0.f), 10.f);
-	float out[2];
-	uint numHits = Raycast(out, ray, plane);
-
-	if (numHits > 0)
-	{
-		DebuggerPrintf("\n Num hits plane: %d", numHits);
-		DebuggerPrintf("\n First Hit: %f", out[0]);
-	}
-
-	Capsule2D capsule(Vec2(20.f, 0.f), 1.f);
-	numHits = Raycast(out, ray, capsule);
-
-	if (numHits > 0)
-	{
-		DebuggerPrintf("\n Num hits capsule: %d", numHits);
-		DebuggerPrintf("\n First Hit: %f", out[0]);
-	}
-
-	std::vector<Vec2> points = { Vec2(60.f, 40.f), Vec2(40.f, 60.f), Vec2(20.f, 40.f), Vec2(40.f, 20.f)};
-	ConvexPoly2D polygon(points);
-	ConvexHull2D hull;
-	int numPlanes = hull.GetNumPlanes();
-	float *hullOut = new float[numPlanes];
-	hull.MakeConvexHullFromConvexPolyon(polygon);
-	ray.m_direction = Vec2(1.f, 1.f);
-	ray.m_direction.Normalize();
-	numHits = Raycast(hullOut, ray, hull);
-	
-	if (numHits > 0)
-	{
-		DebuggerPrintf("\n Num hits Hull: %d", numHits);
-		DebuggerPrintf("\n First Hit: %f", hullOut[0]);
-	}
-
-	g_LogSystem->Logf("\n PrintFilter", "I am a Logf call");
-	g_LogSystem->Logf("\n FlushFilter", "I am now calling flush");
-	g_LogSystem->LogFlush();
-	return true;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------
 void Game::StartUp()
 {
 	//Setup mouse startup values
@@ -151,7 +106,63 @@ void Game::StartUp()
 	//Generate Random Convex Polygons to render on screen
 	CreateConvexPolygons(INIT_NUM_POLYGONS);
 	CreateRaycasts(INIT_NUM_RAYCASTS);
+
+	//Setup the render ray
+	CreateRenderRay();
 }
+
+//------------------------------------------------------------------------------------------------------------------------------
+UNITTEST("RaycastTests", "MathUtils", 1)
+{
+	Ray2D ray(Vec2(0.f, 0.f), Vec2(1.f, 0.f));
+	Plane2D plane(Vec2(1.f, 0.f), 10.f);
+	float out[2];
+	uint numHits = Raycast(out, ray, plane);
+
+	if (numHits > 0)
+	{
+		DebuggerPrintf("\n Num hits plane: %d", numHits);
+		DebuggerPrintf("\n First Hit: %f", out[0]);
+	}
+
+	Capsule2D capsule(Vec2(20.f, 0.f), 1.f);
+	numHits = Raycast(out, ray, capsule);
+
+	if (numHits > 0)
+	{
+		DebuggerPrintf("\n Num hits capsule: %d", numHits);
+		DebuggerPrintf("\n First Hit: %f", out[0]);
+	}
+
+	std::vector<Vec2> points = { Vec2(60.f, 40.f), Vec2(40.f, 60.f), Vec2(20.f, 40.f), Vec2(40.f, 20.f)};
+	ConvexPoly2D polygon(points);
+	ConvexHull2D hull;
+	hull.MakeConvexHullFromConvexPolyon(polygon);
+	
+	int numPlanes = hull.GetNumPlanes();
+	float *hullOut = new float[numPlanes];
+	
+	ray.m_direction = Vec2(1.f, 1.f);
+	ray.m_direction.Normalize();
+	
+	numHits = Raycast(hullOut, ray, hull);
+
+	if (numHits > 0)
+	{
+		DebuggerPrintf("\n Num hits Hull: %d", numHits);
+		DebuggerPrintf("\n First Hit: %f", hullOut[0]);
+	}
+
+	delete[] hullOut;
+	
+	TODO("Figure out why this code is causing a heap corruption");
+
+	g_LogSystem->Logf("\n PrintFilter", "I am a Logf call");
+	g_LogSystem->Logf("\n FlushFilter", "I am now calling flush");
+	g_LogSystem->LogFlush();
+	return true;
+}
+
 
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::UpdateImGUI()
@@ -508,6 +519,7 @@ void Game::Render() const
 	g_renderContext->BindShader( m_shader );
 
 	RenderAllGeometry();
+	RenderRaycast();
 
 	RenderWorldBounds();
 
@@ -605,6 +617,48 @@ void Game::DebugRenderToCamera() const
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+void Game::CheckRenderRayVsConvexHulls()
+{
+	//Check the render ray vs all the convex hulls in the scene
+	for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
+	{
+		float* out = new float[m_convexHulls[hullIndex].GetNumPlanes()];
+		uint hits = Raycast(&out[0], m_renderedRay, m_convexHulls[hullIndex]);
+
+		if (hits > 0)
+		{
+			DebuggerPrintf("\n Ray hit convexHull");
+			m_drawRayStart = m_rayStart;
+			m_drawRayEnd = m_renderedRay.GetPointAtTime(out[0]);
+		}
+		else
+		{
+			m_drawRayStart = m_rayStart;
+			m_drawRayEnd = m_rayEnd;
+		}
+
+		delete[] out;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::RenderRaycast() const
+{
+	std::vector<Vertex_PCU> rayVerts;
+
+	AddVertsForArrow2D(rayVerts, m_rayStart, m_rayEnd, 1.f, Rgba::DIM_TRANSLUCENT_GREY);
+	AddVertsForArrow2D(rayVerts, m_drawRayStart, m_drawRayEnd, 1.f, Rgba::ORGANIC_DIM_RED);
+
+	g_renderContext->DrawVertexArray(rayVerts);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::DebugRenderAllGeometry() const
+{
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 ConvexPoly2D Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) const
 {
 	std::vector<Vec2> convexPolyPoints;
@@ -640,7 +694,7 @@ void Game::PostRender()
 
 		ColorTargetView* ctv = g_renderContext->GetFrameColorTarget();
 		//Setup debug render client data
-		g_debugRenderer->SetClientDimensions( WORLD_HEIGHT, WORLD_WIDTH);
+		g_debugRenderer->SetClientDimensions( (int)WORLD_HEIGHT, (int)WORLD_WIDTH);
 		g_debugRenderer->SetWorldSize2D(m_mainCamera->GetOrthoBottomLeft(), m_mainCamera->GetOrthoTopRight());
 
 		m_isDebugSetup = true;
@@ -679,6 +733,8 @@ void Game::Update( float deltaTime )
 	}
 
 	UpdateImGUI();
+
+	CheckRenderRayVsConvexHulls();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -817,7 +873,11 @@ void Game::CreateConvexPolygons(int numPolygons)
 			randomPosition.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + randomRadius + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - randomRadius - BUFFER_SPACE);
 
 			ConvexPoly2D polygon = MakeConvexPoly2DFromDisc(randomPosition, randomRadius);
+			ConvexHull2D hull;
+			hull.MakeConvexHullFromConvexPolyon(polygon);
+			
 			m_convexPolys.push_back(polygon);
+			m_convexHulls.push_back(hull);
 		}
 	}
 	else
@@ -826,6 +886,7 @@ void Game::CreateConvexPolygons(int numPolygons)
 		while (m_convexPolys.size() > numPolygons)
 		{
 			m_convexPolys.pop_back();
+			m_convexHulls.pop_back();
 		}
 	}
 }
@@ -865,4 +926,19 @@ void Game::CreateRaycasts(int numRaycasts)
 		}
 	}
 
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::CreateRenderRay()
+{
+	//Setup some random start and end positions
+	m_rayStart.x = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.x + BUFFER_SPACE, m_worldBounds.m_maxBounds.x - BUFFER_SPACE);
+	m_rayStart.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - BUFFER_SPACE);
+
+	m_rayEnd.x = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.x + BUFFER_SPACE, m_worldBounds.m_maxBounds.x - BUFFER_SPACE);
+	m_rayEnd.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - BUFFER_SPACE);
+
+	m_renderedRay.m_start = m_rayStart;
+	m_renderedRay.m_direction = m_rayEnd - m_rayStart;
+	m_renderedRay.m_direction.Normalize();
 }

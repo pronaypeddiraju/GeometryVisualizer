@@ -72,15 +72,15 @@ void App::StartUp()
 	//Load initial black board here
 	//LoadGameBlackBoard();
 
+	//Create log system
+	//g_LogSystem = new LogSystem(LOG_PATH);
+	//g_LogSystem->LogSystemInit();
+
 	//Create event system
 	g_eventSystem = new EventSystems();
 
 	//Create the random number generator
 	g_RNG = new RandomNumberGenerator();
-
-	//Create the Render Context
-	//g_renderContext = new RenderContext();
-	//g_renderContext->Startup();
 	
 	//Create the Debug Render System
 	g_debugRenderer = new DebugRender();
@@ -97,8 +97,8 @@ void App::StartUp()
 	g_devConsole->Startup();
 
 	//Create physics system
-	g_physicsSystem = new PhysicsSystem();
-	g_physicsSystem->SetGravity(Vec2(0.f, -9.8f));
+	//g_physicsSystem = new PhysicsSystem();
+	//g_physicsSystem->SetGravity(Vec2(0.f, -9.8f));
 
 	//create the networking system
 	//g_networkSystem = new NetworkSystem();
@@ -118,8 +118,8 @@ void App::ShutDown()
 	m_game->ShutDown();
 	delete m_game;
 
-	delete g_renderContext;
-	g_renderContext = nullptr;
+	delete g_ImGUI;
+	g_ImGUI = nullptr;
 
 	delete g_debugRenderer;
 	g_debugRenderer = nullptr;
@@ -127,8 +127,8 @@ void App::ShutDown()
 	delete g_inputSystem;
 	g_inputSystem = nullptr;
 
-	delete g_audio;
-	g_audio = nullptr;
+	//delete g_audio;
+	//g_audio = nullptr;
 
 	delete g_devConsole;
 	g_devConsole = nullptr;
@@ -139,8 +139,12 @@ void App::ShutDown()
 	delete g_eventSystem;
 	g_eventSystem = nullptr;
 
-	delete g_ImGUI;
-	g_ImGUI = nullptr;
+	delete g_renderContext;
+	g_renderContext = nullptr;
+
+	g_LogSystem->LogSystemShutDown();
+	delete g_LogSystem;
+	g_LogSystem = nullptr;
 }
 
 void App::RunFrame()
@@ -162,7 +166,7 @@ void App::EndFrame()
 	g_renderContext->EndFrame();
 	g_debugRenderer->EndFrame();
 	g_inputSystem->EndFrame();
-	g_audio->EndFrame();
+	//g_audio->EndFrame();
 	g_eventSystem->EndFrame();
 	g_ImGUI->EndFrame();
 	g_devConsole->EndFrame();
@@ -173,10 +177,10 @@ void App::BeginFrame()
 	g_renderContext->BeginFrame();
 	g_debugRenderer->BeginFrame();
 	g_inputSystem->BeginFrame();
-	g_audio->BeginFrame();
+	//g_audio->BeginFrame();
 	g_eventSystem->BeginFrame();
-	g_ImGUI->BeginFrame();
 	g_devConsole->BeginFrame();
+	g_ImGUI->BeginFrame();
 }
 
 void App::Update()

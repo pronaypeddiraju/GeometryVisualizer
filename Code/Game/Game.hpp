@@ -62,21 +62,26 @@ public:
 private:
 	void					CreateConvexPolygons(int numPolygons);
 	void					CreateRaycasts(int numRaycasts);
+	void					CreateRenderRay();
 	
-	void					UpdateGeometry( float deltaTime );
+	void					UpdateGeometry(float deltaTime);
 	void					UpdateCamera( float deltaTime );
 	void					UpdateCameraMovement(unsigned char keyCode);
 	void					UpdateImGUI();
+
+	void					CheckRenderRayVsConvexHulls();
 
 	void					RenderWorldBounds() const;
 	void					RenderOnScreenInfo() const;
 	void					RenderPersistantUI() const;
 	void					RenderAllGeometry() const;
+	void					RenderRaycast() const;
+
+	void					DebugRenderAllGeometry() const;
 
 	void					DebugRenderTestRandomPointsOnScreen() const;
 	void					DebugRenderToScreen() const;
 	void					DebugRenderToCamera() const;
-
 
 private:
 
@@ -123,7 +128,18 @@ public:
 	int							m_numPolygonsLastFrame;
 	//Rgba						m_polygonColor = Rgba::ORGANIC_GREY;
 
+	std::vector<ConvexHull2D>	m_convexHulls;
+	int							m_numHullsLastFrame;
+
 	//Raycasts in the scene
 	std::vector<Ray2D>			m_rays;
 	int							m_numRaysLastFrame;
+
+	Ray2D						m_renderedRay;
+	Vec2						m_rayStart;
+	Vec2						m_rayEnd;
+
+	Vec2						m_drawRayStart;
+	Vec2						m_drawRayEnd;
+
 };
