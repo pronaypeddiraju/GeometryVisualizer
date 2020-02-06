@@ -191,6 +191,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="BitBucketBroadPhase.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameCursor.cpp" />
     <ClCompile Include="Geometry.cpp" />

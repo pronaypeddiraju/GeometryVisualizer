@@ -25,6 +25,9 @@
     <ClCompile Include="Geometry.cpp">
       <Filter>Gameplay</Filter>
     </ClCompile>
+    <ClCompile Include="BitBucketBroadPhase.cpp">
+      <Filter>Gameplay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.hpp">

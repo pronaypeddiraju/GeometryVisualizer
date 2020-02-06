@@ -2,6 +2,8 @@
 #include "Game/App.hpp"
 //Engine Systems
 #include "Engine/Audio/AudioSystem.hpp"
+#include "Engine/Commons/EngineCommon.hpp"
+#include "Engine/Commons/Profiler/Profiler.hpp"
 #include "Engine/Core/Clock.hpp"
 #include "Engine/Core/DevConsole.hpp"
 #include "Engine/Core/EventSystems.hpp"
@@ -11,12 +13,12 @@
 #include "Engine/Input/InputSystem.hpp"
 #include "Engine/Math/MathUtils.hpp"
 #include "Engine/Math/PhysicsSystem.hpp"
+#include "Engine/Math/RandomNumberGenerator.hpp"
 #include "Engine/Renderer/BitmapFont.hpp"
 #include "Engine/Renderer/DebugRender.hpp"
 #include "Engine/Renderer/RenderContext.hpp"
 //Game Systems
 #include "Game/Game.hpp"
-#include "Engine/Math/RandomNumberGenerator.hpp"
 
 //Globals
 App* g_theApp = nullptr;
@@ -106,6 +108,15 @@ void App::StartUp()
 	//Create the ImGUI system
 	g_ImGUI = new ImGUISystem(g_renderContext);
 
+#if defined(_DEBUG)
+	{
+		g_LogSystem = new LogSystem(LOG_PATH);
+		g_LogSystem->LogSystemInit();
+
+		gProfiler->ProfilerInitialize();
+	}
+#endif
+
 	//Create the game here
 	m_game = new Game();
 	m_game->StartUp();
@@ -142,9 +153,15 @@ void App::ShutDown()
 	delete g_renderContext;
 	g_renderContext = nullptr;
 
-	g_LogSystem->LogSystemShutDown();
-	delete g_LogSystem;
-	g_LogSystem = nullptr;
+#if defined(_DEBUG)
+	{
+		g_LogSystem->LogSystemShutDown();
+		delete g_LogSystem;
+		g_LogSystem = nullptr;
+
+		gProfiler->ProfilerShutdown();
+	}
+#endif
 }
 
 void App::RunFrame()
@@ -170,10 +187,14 @@ void App::EndFrame()
 	g_eventSystem->EndFrame();
 	g_ImGUI->EndFrame();
 	g_devConsole->EndFrame();
+
+	gProfiler->ProfilerEndFrame();
 }
 
 void App::BeginFrame()
 {
+	gProfiler->ProfilerBeginFrame("App::BeginFrame");
+
 	g_renderContext->BeginFrame();
 	g_debugRenderer->BeginFrame();
 	g_inputSystem->BeginFrame();
@@ -185,6 +206,8 @@ void App::BeginFrame()
 
 void App::Update()
 {	
+	gProfiler->ProfilerUpdate();
+
 	m_timeAtLastFrameBegin = m_timeAtThisFrameBegin;
 	m_timeAtThisFrameBegin = GetCurrentTimeSeconds();
 	float deltaTime = static_cast<float>(m_timeAtThisFrameBegin - m_timeAtLastFrameBegin);
@@ -376,28 +399,24 @@ bool App::HandleMouseLBDown()
 {
 	//Mouse Left button down logic here
 	return m_game->HandleMouseLBDown();
-	return true;
 }
 
 bool App::HandleMouseLBUp()
 {
 	//Mouse Left button Up logic here
 	return m_game->HandleMouseLBUp();
-	return true;
 }
 
 bool App::HandleMouseRBDown()
 {
 	//Mouse Right Button Down logic here
 	return m_game->HandleMouseRBDown();
-	return true;
 }
 
 bool App::HandleMouseRBUp()
 {
 	//Mouse Right Button Up logic here
 	return m_game->HandleMouseRBUp();	
-	return true;
 }
 
 bool App::HandleMouseScroll(float wheelDelta)

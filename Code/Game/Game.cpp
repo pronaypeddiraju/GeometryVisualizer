@@ -29,6 +29,9 @@
 #include "Engine/Math/Ray2D.hpp"
 #include "Engine/Math/Plane2D.hpp"
 #include "Engine/Math/ConvexHull2D.hpp"
+#include "Engine/Commons/Profiler/ProfileLogScope.hpp"
+#include "Engine/Commons/Profiler/Profiler.hpp"
+#include "Engine/Commons/EngineCommon.hpp"
 
 //Globals
 float g_shakeAmount = 0.0f;
@@ -101,6 +104,9 @@ void Game::StartUp()
 	ui_polygonColor[1] = Rgba::ORGANIC_GREEN.g;
 	ui_polygonColor[2] = Rgba::ORGANIC_GREEN.b;
 
+	m_broadPhaseChecker.SetWorldDimensions(minWorldBounds, maxWorldBounds);
+	m_broadPhaseChecker.MakeRegionsForWorld();
+
 	UnitTestRunAllCategories(10);
 
 	//Generate Random Convex Polygons to render on screen
@@ -154,8 +160,6 @@ UNITTEST("RaycastTests", "MathUtils", 1)
 	}
 
 	delete hullOut;
-	
-	TODO("Figure out why this code is causing a heap corruption");
 
 	g_LogSystem->Logf("\n PrintFilter", "I am a Logf call");
 	g_LogSystem->Logf("\n FlushFilter", "I am now calling flush");
@@ -206,6 +210,7 @@ void Game::UpdateImGUI()
 	}
 
 	ImGui::SliderInt("Number of Rays", &ui_numRays, ui_minRays, ui_maxRays);
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 	ImGui::End();
 }
@@ -533,22 +538,24 @@ void Game::DebugRenderToCamera() const
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::CheckRenderRayVsConvexHulls()
 {
+	float bestHit = 9999;
+
 	//Check the render ray vs all the convex hulls in the scene
 	for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
 	{
 		RayHit2D* out = new RayHit2D[m_convexHulls[hullIndex].GetNumPlanes()];
 		uint hits = Raycast(out, m_renderedRay, m_convexHulls[hullIndex], 0.f);
 
-		if (hits > 0 && IsPointOnLineSegment2D(out->m_hitPoint, m_rayStart, m_rayEnd))
+		if (hits > 0 && IsPointOnLineSegment2D(out->m_hitPoint, m_rayStart, m_rayEnd) && out->m_timeAtHit < bestHit)
 		{
 			m_isHitting = true;
 			DebuggerPrintf("\n Ray hit convexHull");
+			bestHit = out->m_timeAtHit;
 			m_drawRayStart = m_rayStart;
 			m_drawRayEnd = out->m_hitPoint;
 			m_drawSurfanceNormal = out->m_impactNormal;
-			return;
 		}
-		else
+		else if(hits == 0 && bestHit == 9999)
 		{
 			m_isHitting = false;
 			m_drawRayStart = m_rayStart;
@@ -558,6 +565,32 @@ void Game::CheckRenderRayVsConvexHulls()
 
 		delete out;
 	}
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::CheckAllRayCastsVsConvexHulls()
+{
+	gProfiler->ProfilerPush("Ray vs Convex");
+
+	for (int rayIndex = 0; rayIndex < m_rays.size(); rayIndex++)
+	{
+		for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
+		{
+			uint hits = 0;
+			hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_convexHulls[hullIndex], 0.f);
+
+			if (hits > 0 && IsPointOnLineSegment2D(m_hits[rayIndex].m_hitPoint, m_rayStart, m_rayEnd))
+			{
+				DebuggerPrintf("\n Ray Number %d hit convexHull Number %d at position: ( %f, %f )", rayIndex, hullIndex, m_hits[rayIndex].m_hitPoint.x, m_hits[rayIndex].m_hitPoint.y);
+			}
+			else
+			{
+				DebuggerPrintf("\n Ray Number %d had no hit", rayIndex);
+			}
+		}
+	}
+
+	gProfiler->ProfilerPop();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -631,6 +664,7 @@ void Game::PostRender()
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::Update( float deltaTime )
 {
+	gProfiler->ProfilerPush("Game::Update");
 	//UpdateCamera(deltaTime);
 
 	m_gameCursor->Update(deltaTime);
@@ -657,8 +691,11 @@ void Game::Update( float deltaTime )
 	UpdateImGUI();
 
 	UpdateVisualRay();
+	CheckAllRayCastsVsConvexHulls();
 
 	CheckRenderRayVsConvexHulls();
+
+	gProfiler->ProfilerPop();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -787,7 +824,7 @@ void Game::CreateConvexPolygons(int numPolygons)
 	//If we have lesser than what we need, let's make some
 	if (numPolygons > m_convexPolys.size())
 	{
-		for (int polygonIndex = 0; polygonIndex < INIT_NUM_POLYGONS; polygonIndex++)
+		for (int polygonIndex = 0; polygonIndex < numPolygons; polygonIndex++)
 		{
 			//Make polygons here and push them into the vector
 			float randomRadius = g_RNG->GetRandomFloatInRange(MIN_CONSTRUCTION_RADIUS, MAX_CONSTRUCTION_RADIUS);
@@ -818,12 +855,14 @@ void Game::CreateConvexPolygons(int numPolygons)
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::CreateRaycasts(int numRaycasts)
 {
-	m_rays.clear();
+	//early out if we have the correct number of polygons
+	if (numRaycasts == m_rays.size())
+		return;
 
 	//If we have lesser than what we need, let's make some
 	if (numRaycasts > m_rays.size())
 	{
-		for (int rayIndex = 0; rayIndex < INIT_NUM_POLYGONS; rayIndex++)
+		for (int rayIndex = 0; rayIndex < numRaycasts; rayIndex++)
 		{
 			//Make rays here and push them into the vector
 			Vec2 randomPosition;
@@ -836,7 +875,10 @@ void Game::CreateRaycasts(int numRaycasts)
 			randomDirection.Normalize();
 
 			Ray2D ray(randomPosition, randomDirection);
+			RayHit2D hit;
+
 			m_rays.push_back(ray);
+			m_hits.push_back(hit);
 		}
 	}
 	else
@@ -845,6 +887,7 @@ void Game::CreateRaycasts(int numRaycasts)
 		while (m_rays.size() > numRaycasts)
 		{
 			m_rays.pop_back();
+			m_hits.pop_back();
 		}
 	}
 

@@ -11,6 +11,7 @@
 //Game systems
 #include "Game/GameCommon.hpp"
 #include "Game/Geometry.hpp"
+#include "Game/BitBucketBroadPhase.hpp"
 
 //------------------------------------------------------------------------------------------------------------------------------
 class Texture;
@@ -71,6 +72,7 @@ private:
 	void					UpdateVisualRay();
 
 	void					CheckRenderRayVsConvexHulls();
+	void					CheckAllRayCastsVsConvexHulls();
 
 	void					RenderWorldBounds() const;
 	void					RenderOnScreenInfo() const;
@@ -135,6 +137,7 @@ public:
 
 	//Raycasts in the scene
 	std::vector<Ray2D>			m_rays;
+	std::vector<RayHit2D>		m_hits;
 	int							m_numRaysLastFrame;
 
 	bool						m_isHitting = false;
@@ -147,4 +150,7 @@ public:
 
 	Vec2						m_drawSurfanceNormal;
 	float						m_surfaceNormalLength = 5.f;
+
+	//Broad Phase Optimization
+	BitFieldBroadPhase			m_broadPhaseChecker;
 };
