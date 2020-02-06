@@ -32,7 +32,7 @@ constexpr float MAX_ZOOM_STEPS = 10.f;
 
 constexpr float CLIENT_ASPECT = 2.0f; // We are requesting a 1:1 aspect (square) window area
 
-constexpr int INIT_NUM_POLYGONS = 8;
+constexpr int INIT_NUM_POLYGONS = 1;
 constexpr int INIT_NUM_RAYCASTS = 1024;
 
 constexpr float MIN_CONSTRUCTION_RADIUS = 5.f;

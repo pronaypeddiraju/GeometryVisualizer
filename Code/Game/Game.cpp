@@ -211,6 +211,21 @@ void Game::UpdateImGUI()
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+void Game::UpdateVisualRay()
+{
+	if (m_isMouseLBDown)
+	{
+		m_rayStart = m_gameCursor->GetCursorPositon();
+		m_renderedRay.m_start = m_gameCursor->GetCursorPositon();
+
+		Vec2 rayDir = m_rayEnd - m_rayStart;
+		rayDir.Normalize();
+
+		m_renderedRay.m_direction = rayDir;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 void Game::ShutDown()
 {
 	delete m_mainCamera;
@@ -325,68 +340,24 @@ void Game::HandleCharacter(unsigned char charCode)
 	}
 }
 
-/*
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseLBDown()
 {
-	int numGeometry = static_cast<int>(m_allGeometry.size()) ;
-
-	if(numGeometry == 0)
-	{
-		return true;
-	}
-
-	//Select object for possession
-	float distMinSq = 200.f;
-	m_selectedIndex = 0;
-	for(int geometryIndex = 0; geometryIndex < numGeometry; geometryIndex++)
-	{
-		if(m_allGeometry[geometryIndex] == nullptr)
-		{
-			continue;
-		}
-
-		float distSq = GetDistanceSquared2D(m_gameCursor->GetCursorPositon(), m_allGeometry[geometryIndex]->m_transform.m_position);
-		if(distMinSq > distSq)
-		{
-			distMinSq = distSq;
-			m_selectedIndex = geometryIndex;
-		}
-	}
-
-	//Now select the actual object
-	m_selectedGeometry = m_allGeometry[m_selectedIndex];
-	g_selectedSimType = m_selectedGeometry->m_rigidbody->GetSimulationType();
-
-	m_selectedGeometry->m_rigidbody->SetSimulationMode(STATIC_SIMULATION);
-	m_gameCursor->SetCursorPosition(m_selectedGeometry->m_transform.m_position);
+	m_isMouseLBDown = true;
+	m_mouseStart = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
+	m_renderedRay.m_start = m_mouseStart;
 	return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseLBUp()
 {
-	if(m_selectedGeometry == nullptr)
-	{
-		return true;
-	}
-
-	//De-select object
-	m_selectedGeometry->m_rigidbody->SetSimulationMode(g_selectedSimType);
-	m_selectedGeometry->m_rigidbody->m_velocity = Vec2::ZERO;
-	m_selectedGeometry->m_rigidbody->m_mass = m_objectMass;
-	m_selectedGeometry->m_rigidbody->m_friction = m_objectFriction;
-	m_selectedGeometry->m_rigidbody->m_linearDrag = m_objectLinearDrag;
-	m_selectedGeometry->m_rigidbody->m_angularDrag = m_objectAngularDrag;
-	m_selectedGeometry->m_rigidbody->m_material.restitution = m_objectRestitution;
-	m_selectedGeometry->m_rigidbody->SetConstraints(m_xFreedom, m_yFreedom, m_rotationFreedom);
-
-	m_selectedGeometry = nullptr;
-	m_selectedIndex = -1;
-
+	m_isMouseLBDown = false;
+	m_mouseEnd = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
 	return true;
 }
 
+/*
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseRBDown()
 {
@@ -623,19 +594,22 @@ void Game::CheckRenderRayVsConvexHulls()
 	for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
 	{
 		RayHit2D* out = new RayHit2D[m_convexHulls[hullIndex].GetNumPlanes()];
-		uint hits = Raycast(out, m_renderedRay, m_convexHulls[hullIndex]);
+		uint hits = Raycast(out, m_renderedRay, m_convexHulls[hullIndex], 0.f);
 
 		if (hits > 0)
 		{
+			m_isHitting = true;
 			DebuggerPrintf("\n Ray hit convexHull");
 			m_drawRayStart = m_rayStart;
 			m_drawRayEnd = out->m_hitPoint;
 			m_drawSurfanceNormal = out->m_impactNormal;
+			return;
 		}
 		else
 		{
+			m_isHitting = false;
 			m_drawRayStart = m_rayStart;
-			m_drawRayEnd = m_rayEnd;
+			m_drawRayEnd = Vec2::ZERO;
 			m_drawSurfanceNormal = Vec2::ZERO;
 		}
 
@@ -650,20 +624,15 @@ void Game::RenderRaycast() const
 
 	AddVertsForArrow2D(rayVerts, m_rayStart, m_rayEnd, 0.5f, Rgba::DIM_TRANSLUCENT_GREY);
 	//Draw the surface normal
-	if (m_drawSurfanceNormal != Vec2::ZERO)
+	if (m_isHitting)
 	{
 		Vec2 endAlongNormal = m_drawRayEnd + m_surfaceNormalLength * m_drawSurfanceNormal;
 		AddVertsForArrow2D(rayVerts, m_drawRayEnd, endAlongNormal, 0.5f, Rgba::ORGANIC_BLUE);
+
+		AddVertsForArrow2D(rayVerts, m_drawRayStart, m_drawRayEnd, 0.5f, Rgba::ORGANIC_ORANGE);
 	}
-	AddVertsForArrow2D(rayVerts, m_drawRayStart, m_drawRayEnd, 0.5f, Rgba::ORGANIC_ORANGE);
 
 	g_renderContext->DrawVertexArray(rayVerts);
-}
-
-//------------------------------------------------------------------------------------------------------------------------------
-void Game::DebugRenderAllGeometry() const
-{
-
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -680,13 +649,15 @@ ConvexPoly2D Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) co
 
 	while (!completedCircle)
 	{
-		point = GetRandomPointOnDisc2D(center, radius, currentAngle - 10.f, currentAngle + 170.f, currentAngle);
-		convexPolyPoints.push_back(point);
-
+		point = GetRandomPointOnDisc2D(center, radius, currentAngle, currentAngle + 170.f, currentAngle);
+		
 		if (currentAngle > 360.f)
 		{
 			completedCircle = true;
+			break;
 		}
+
+		convexPolyPoints.push_back(point);
 	}
 
 	ConvexPoly2D polygon(convexPolyPoints);
@@ -741,6 +712,8 @@ void Game::Update( float deltaTime )
 	}
 
 	UpdateImGUI();
+
+	UpdateVisualRay();
 
 	CheckRenderRayVsConvexHulls();
 }
@@ -902,9 +875,7 @@ void Game::CreateConvexPolygons(int numPolygons)
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::CreateRaycasts(int numRaycasts)
 {
-	//early out if we have the correct number of rays
-	if (numRaycasts == m_rays.size())
-		return;
+	m_rays.clear();
 
 	//If we have lesser than what we need, let's make some
 	if (numRaycasts > m_rays.size())

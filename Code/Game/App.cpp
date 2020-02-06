@@ -375,36 +375,36 @@ bool App::HandleCharacter( unsigned char charCode )
 bool App::HandleMouseLBDown()
 {
 	//Mouse Left button down logic here
+	return m_game->HandleMouseLBDown();
 	return true;
-	//return m_game->HandleMouseLBDown();
 }
 
 bool App::HandleMouseLBUp()
 {
 	//Mouse Left button Up logic here
+	return m_game->HandleMouseLBUp();
 	return true;
-	//return m_game->HandleMouseLBUp();
 }
 
 bool App::HandleMouseRBDown()
 {
 	//Mouse Right Button Down logic here
-	return true;
 	//return m_game->HandleMouseRBDown();
+	return true;
 }
 
 bool App::HandleMouseRBUp()
 {
 	//Mouse Right Button Up logic here
-	return true;
 	//return m_game->HandleMouseRBUp();	
+	return true;
 }
 
 bool App::HandleMouseScroll(float wheelDelta)
 {
 	UNUSED(wheelDelta);
-	return true;
 	//return m_game->HandleMouseScroll(wheelDelta);
+	return true;
 }
 
 bool App::HandleQuitRequested()

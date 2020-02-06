@@ -41,8 +41,8 @@ public:
 	void					HandleKeyReleased( unsigned char keyCode );
 	void					HandleCharacter( unsigned char charCode );
 
-	//bool					HandleMouseLBDown();
-	//bool					HandleMouseLBUp();
+	bool					HandleMouseLBDown();
+	bool					HandleMouseLBUp();
 	//bool					HandleMouseRBDown();
 	//bool					HandleMouseRBUp();
 	//bool					HandleMouseScroll(float wheelDelta);
@@ -68,6 +68,7 @@ private:
 	void					UpdateCamera( float deltaTime );
 	void					UpdateCameraMovement(unsigned char keyCode);
 	void					UpdateImGUI();
+	void					UpdateVisualRay();
 
 	void					CheckRenderRayVsConvexHulls();
 
@@ -76,8 +77,6 @@ private:
 	void					RenderPersistantUI() const;
 	void					RenderAllGeometry() const;
 	void					RenderRaycast() const;
-
-	void					DebugRenderAllGeometry() const;
 
 	void					DebugRenderTestRandomPointsOnScreen() const;
 	void					DebugRenderToScreen() const;
@@ -105,6 +104,8 @@ public:
 	AABB2					m_worldBounds;
 
 	bool					m_toggleUI = false;
+
+	bool					m_isMouseLBDown = false;
 
 	//Debug Render Variable
 	bool					m_isDebugSetup = false;
@@ -135,6 +136,7 @@ public:
 	std::vector<Ray2D>			m_rays;
 	int							m_numRaysLastFrame;
 
+	bool						m_isHitting = false;
 	Ray2D						m_renderedRay;
 	Vec2						m_rayStart;
 	Vec2						m_rayEnd;
