@@ -43,8 +43,8 @@ public:
 
 	bool					HandleMouseLBDown();
 	bool					HandleMouseLBUp();
-	//bool					HandleMouseRBDown();
-	//bool					HandleMouseRBUp();
+	bool					HandleMouseRBDown();
+	bool					HandleMouseRBUp();
 	//bool					HandleMouseScroll(float wheelDelta);
 	
 	void					Render() const;
@@ -105,7 +105,8 @@ public:
 
 	bool					m_toggleUI = false;
 
-	bool					m_isMouseLBDown = false;
+	bool					m_canMoveStart = false;
+	bool					m_canMoveEnd = false;
 
 	//Debug Render Variable
 	bool					m_isDebugSetup = false;

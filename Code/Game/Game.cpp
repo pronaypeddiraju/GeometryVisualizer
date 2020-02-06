@@ -213,16 +213,21 @@ void Game::UpdateImGUI()
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::UpdateVisualRay()
 {
-	if (m_isMouseLBDown)
+	if (m_canMoveStart)
 	{
 		m_rayStart = m_gameCursor->GetCursorPositon();
 		m_renderedRay.m_start = m_gameCursor->GetCursorPositon();
-
-		Vec2 rayDir = m_rayEnd - m_rayStart;
-		rayDir.Normalize();
-
-		m_renderedRay.m_direction = rayDir;
 	}
+
+	if (m_canMoveEnd)
+	{
+		m_rayEnd = m_gameCursor->GetCursorPositon();
+	}
+
+	Vec2 rayDir = m_rayEnd - m_rayStart;
+	rayDir.Normalize();
+
+	m_renderedRay.m_direction = rayDir;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -248,9 +253,22 @@ void Game::HandleKeyPressed(unsigned char keyCode)
 	{
 		case W_KEY:
 		case S_KEY:
+		{
+			m_canMoveStart = true;
+			m_mouseStart = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
+			m_renderedRay.m_start = m_mouseStart;
+			break;
+		}
 		case A_KEY:
 		case D_KEY:
 		break;
+		case E_KEY:
+		{
+			m_canMoveEnd = true;
+			m_mouseEnd = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
+			m_rayEnd = m_mouseEnd;
+			break;
+		}
 		case LCTRL_KEY:
 		{
 			m_toggleUI = !m_toggleUI;
@@ -343,7 +361,7 @@ void Game::HandleCharacter(unsigned char charCode)
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseLBDown()
 {
-	m_isMouseLBDown = true;
+	m_canMoveStart = true;
 	m_mouseStart = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
 	m_renderedRay.m_start = m_mouseStart;
 	return true;
@@ -352,106 +370,31 @@ bool Game::HandleMouseLBDown()
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseLBUp()
 {
-	m_isMouseLBDown = false;
-	m_mouseEnd = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
+	m_canMoveStart = false;
+	m_mouseStart = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
+	m_renderedRay.m_start = m_mouseStart;
 	return true;
 }
 
-/*
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseRBDown()
 {
-	m_mouseStart = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
+	m_canMoveEnd = true;
+	m_mouseEnd = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
+	m_rayEnd = m_mouseEnd;
 	return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseRBUp()
 {
-
+	m_canMoveEnd = false;
 	m_mouseEnd = GetClientToWorldPosition2D(g_windowContext->GetClientMousePosition(), g_windowContext->GetClientBounds());
-
-	Geometry* geometry;
-
-	//Calculate the object center, rotation and bounds
-	Vec2 disp = m_mouseStart - m_mouseEnd;
-	Vec2 norm = disp.GetNormalized();
-	float length = disp.GetLength();
-
-	Vec2 center = m_mouseEnd + length * norm * 0.5f;
-	float rotationDegrees = disp.GetAngleDegrees() + 90.f;
-
-	//Switch on geometry type and construct required collider
-	switch( m_geometryType )
-	{
-	case TYPE_UNKNOWN:
-	break;
-	case AABB2_GEOMETRY:
-	break;
-	case DISC_GEOMETRY:
-	break;
-	case BOX_GEOMETRY:
-	{
-		//Calculate Centre from mouse Start and End
-		
-
-		if(m_isStatic)
-		{
-			geometry = new Geometry(*g_physicsSystem, STATIC_SIMULATION, BOX_GEOMETRY, center, rotationDegrees, length);
-			geometry->m_rigidbody->m_mass = INFINITY;
-			geometry->m_rigidbody->SetConstraints(false, false, false);
-			geometry->m_rigidbody->m_collider->SetCollisionEvent("StaticCollisionEvent");
-		}
-		else
-		{
-			geometry = new Geometry(*g_physicsSystem, DYNAMIC_SIMULATION, BOX_GEOMETRY, center, rotationDegrees, length);
-			geometry->m_rigidbody->m_mass = m_objectMass;
-			geometry->m_rigidbody->SetConstraints(m_xFreedom, m_yFreedom, m_rotationFreedom);
-			geometry->m_rigidbody->m_collider->SetCollisionEvent("DynamicCollisionEvent");
-		}
-		geometry->m_rigidbody->m_material.restitution = m_objectRestitution;
-		geometry->m_rigidbody->m_friction = m_objectFriction;
-		geometry->m_rigidbody->m_angularDrag = m_objectAngularDrag;
-		geometry->m_rigidbody->m_linearDrag = m_objectLinearDrag;
-		geometry->m_collider->SetMomentForObject();
-		m_allGeometry.push_back(geometry);
-
-	}
-	break;
-	case CAPSULE_GEOMETRY:
-	{
-		if(m_isStatic)
-		{
-			geometry = new Geometry(*g_physicsSystem, STATIC_SIMULATION, CAPSULE_GEOMETRY, m_mouseStart, rotationDegrees, 0.f, m_mouseEnd);
-			geometry->m_rigidbody->m_mass = INFINITY;
-			geometry->m_rigidbody->SetConstraints(false, false, false);
-			geometry->m_rigidbody->m_collider->SetCollisionEvent("StaticCollisionEvent");
-		}
-		else
-		{
-			geometry = new Geometry(*g_physicsSystem, DYNAMIC_SIMULATION, CAPSULE_GEOMETRY, m_mouseStart, rotationDegrees, 0.f, m_mouseEnd);
-			geometry->m_rigidbody->m_mass = m_objectMass;
-			geometry->m_rigidbody->SetConstraints(m_xFreedom, m_yFreedom, m_rotationFreedom);
-			geometry->m_rigidbody->m_collider->SetCollisionEvent("DynamicCollisionEvent");
-		}
-		geometry->m_rigidbody->m_friction = m_objectFriction;
-		geometry->m_rigidbody->m_angularDrag = m_objectAngularDrag;
-		geometry->m_rigidbody->m_linearDrag = m_objectLinearDrag;
-		geometry->m_collider->SetMomentForObject();
-		geometry->m_rigidbody->m_material.restitution = m_objectRestitution;
-
-		m_allGeometry.push_back(geometry);
-	}
-	break;
-	case NUM_GEOMETRY_TYPES:
-	break;
-	default:
-	break;
-	}
-
+	m_rayEnd = m_mouseEnd;
 	return true;
 }
 
+/*
 //------------------------------------------------------------------------------------------------------------------------------
 bool Game::HandleMouseScroll(float wheelDelta)
 {
@@ -596,7 +539,7 @@ void Game::CheckRenderRayVsConvexHulls()
 		RayHit2D* out = new RayHit2D[m_convexHulls[hullIndex].GetNumPlanes()];
 		uint hits = Raycast(out, m_renderedRay, m_convexHulls[hullIndex], 0.f);
 
-		if (hits > 0)
+		if (hits > 0 && IsPointOnLineSegment2D(out->m_hitPoint, m_rayStart, m_rayEnd))
 		{
 			m_isHitting = true;
 			DebuggerPrintf("\n Ray hit convexHull");

@@ -389,14 +389,14 @@ bool App::HandleMouseLBUp()
 bool App::HandleMouseRBDown()
 {
 	//Mouse Right Button Down logic here
-	//return m_game->HandleMouseRBDown();
+	return m_game->HandleMouseRBDown();
 	return true;
 }
 
 bool App::HandleMouseRBUp()
 {
 	//Mouse Right Button Up logic here
-	//return m_game->HandleMouseRBUp();	
+	return m_game->HandleMouseRBUp();	
 	return true;
 }
 
