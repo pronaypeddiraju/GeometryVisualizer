@@ -45,5 +45,6 @@
     <ClInclude Include="Geometry.hpp">
       <Filter>Gameplay</Filter>
     </ClInclude>
+    <ClInclude Include="BitBucketBroadPhase.hpp" />
   </ItemGroup>
 </Project>

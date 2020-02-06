@@ -142,4 +142,6 @@ public:
 	Vec2						m_drawRayStart;
 	Vec2						m_drawRayEnd;
 
+	Vec2						m_drawSurfanceNormal;
+	float						m_surfaceNormalLength = 5.f;
 };

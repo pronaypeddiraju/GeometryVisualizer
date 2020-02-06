@@ -140,7 +140,7 @@ UNITTEST("RaycastTests", "MathUtils", 1)
 	hull.MakeConvexHullFromConvexPolyon(polygon);
 	
 	int numPlanes = hull.GetNumPlanes();
-	float *hullOut = new float[numPlanes];
+	RayHit2D *hullOut = new RayHit2D[numPlanes];
 	
 	ray.m_direction = Vec2(1.f, 1.f);
 	ray.m_direction.Normalize();
@@ -150,10 +150,10 @@ UNITTEST("RaycastTests", "MathUtils", 1)
 	if (numHits > 0)
 	{
 		DebuggerPrintf("\n Num hits Hull: %d", numHits);
-		DebuggerPrintf("\n First Hit: %f", hullOut[0]);
+		DebuggerPrintf("\n First Hit: %f", hullOut->m_timeAtHit);
 	}
 
-	delete[] hullOut;
+	delete hullOut;
 	
 	TODO("Figure out why this code is causing a heap corruption");
 
@@ -622,22 +622,24 @@ void Game::CheckRenderRayVsConvexHulls()
 	//Check the render ray vs all the convex hulls in the scene
 	for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
 	{
-		float* out = new float[m_convexHulls[hullIndex].GetNumPlanes()];
-		uint hits = Raycast(&out[0], m_renderedRay, m_convexHulls[hullIndex]);
+		RayHit2D* out = new RayHit2D[m_convexHulls[hullIndex].GetNumPlanes()];
+		uint hits = Raycast(out, m_renderedRay, m_convexHulls[hullIndex]);
 
 		if (hits > 0)
 		{
 			DebuggerPrintf("\n Ray hit convexHull");
 			m_drawRayStart = m_rayStart;
-			m_drawRayEnd = m_renderedRay.GetPointAtTime(out[0]);
+			m_drawRayEnd = out->m_hitPoint;
+			m_drawSurfanceNormal = out->m_impactNormal;
 		}
 		else
 		{
 			m_drawRayStart = m_rayStart;
 			m_drawRayEnd = m_rayEnd;
+			m_drawSurfanceNormal = Vec2::ZERO;
 		}
 
-		delete[] out;
+		delete out;
 	}
 }
 
@@ -646,8 +648,14 @@ void Game::RenderRaycast() const
 {
 	std::vector<Vertex_PCU> rayVerts;
 
-	AddVertsForArrow2D(rayVerts, m_rayStart, m_rayEnd, 1.f, Rgba::DIM_TRANSLUCENT_GREY);
-	AddVertsForArrow2D(rayVerts, m_drawRayStart, m_drawRayEnd, 1.f, Rgba::ORGANIC_DIM_RED);
+	AddVertsForArrow2D(rayVerts, m_rayStart, m_rayEnd, 0.5f, Rgba::DIM_TRANSLUCENT_GREY);
+	//Draw the surface normal
+	if (m_drawSurfanceNormal != Vec2::ZERO)
+	{
+		Vec2 endAlongNormal = m_drawRayEnd + m_surfaceNormalLength * m_drawSurfanceNormal;
+		AddVertsForArrow2D(rayVerts, m_drawRayEnd, endAlongNormal, 0.5f, Rgba::ORGANIC_BLUE);
+	}
+	AddVertsForArrow2D(rayVerts, m_drawRayStart, m_drawRayEnd, 0.5f, Rgba::ORGANIC_ORANGE);
 
 	g_renderContext->DrawVertexArray(rayVerts);
 }
