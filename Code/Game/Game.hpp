@@ -73,6 +73,7 @@ private:
 
 	void					CheckRenderRayVsConvexHulls();
 	void					CheckAllRayCastsVsConvexHulls();
+	void					CheckRaycastsBroadPhase();
 
 	void					RenderWorldBounds() const;
 	void					RenderOnScreenInfo() const;

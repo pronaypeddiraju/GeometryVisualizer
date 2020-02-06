@@ -536,6 +536,16 @@ void Game::DebugRenderToCamera() const
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+void Game::CheckRaycastsBroadPhase()
+{
+	TODO("Use the broadphase check implementing bit buckets");
+	//Since the hulls don't move, we can store their BitFields at compile time
+
+	//We still need to get the BitFields for each ray we are going to cast
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 void Game::CheckRenderRayVsConvexHulls()
 {
 	float bestHit = 9999;
@@ -695,6 +705,8 @@ void Game::Update( float deltaTime )
 
 	CheckRenderRayVsConvexHulls();
 
+	CheckRaycastsBroadPhase();
+
 	gProfiler->ProfilerPop();
 }
 
@@ -834,9 +846,15 @@ void Game::CreateConvexPolygons(int numPolygons)
 			randomPosition.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + randomRadius + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - randomRadius - BUFFER_SPACE);
 
 			ConvexPoly2D polygon = MakeConvexPoly2DFromDisc(randomPosition, randomRadius);
+			IntVec2 bitField;
+			
+			bitField = m_broadPhaseChecker.GetRegionForConvexPoly(polygon);
+			polygon.SetBitFieldsForBitBucketBroadPhase(bitField);
+
 			ConvexHull2D hull;
 			hull.MakeConvexHullFromConvexPolyon(polygon);
-			
+			hull.SetBitFieldsForBitBucketBroadPhase(bitField);
+
 			m_convexPolys.push_back(polygon);
 			m_convexHulls.push_back(hull);
 		}
