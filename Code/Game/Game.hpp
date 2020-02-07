@@ -71,6 +71,7 @@ private:
 	void					UpdateImGUI();
 	void					UpdateVisualRay();
 
+	//Check Rays vs ConvexHulls
 	void					CheckRenderRayVsConvexHulls();
 	void					CheckAllRayCastsVsConvexHulls();
 	void					CheckRaycastsBroadPhase();
@@ -85,10 +86,12 @@ private:
 	void					DebugRenderToScreen() const;
 	void					DebugRenderToCamera() const;
 
+	void					ReRandomize();
 private:
 
 	bool					m_isGameAlive = false;
 	bool					m_consoleDebugOnce = false;
+	bool					m_toggleBroadPhaseMode = true;
 
 public:
 
@@ -154,4 +157,5 @@ public:
 
 	//Broad Phase Optimization
 	BitFieldBroadPhase			m_broadPhaseChecker;
+	float						m_cachedRaycastTime;
 };

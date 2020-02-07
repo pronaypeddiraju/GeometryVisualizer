@@ -212,6 +212,9 @@ void Game::UpdateImGUI()
 	ImGui::SliderInt("Number of Rays", &ui_numRays, ui_minRays, ui_maxRays);
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
+	ImGui::Checkbox("Enable Bit Bucket Broad-phase Check", &m_toggleBroadPhaseMode);
+	ImGui::Text("Total Raycast Time last frame in ms: %f", m_cachedRaycastTime * 1000.f);
+
 	ImGui::End();
 }
 
@@ -287,16 +290,46 @@ void Game::HandleKeyPressed(unsigned char keyCode)
 		case L_KEY:
 		break;
 		case NUM_1:
+		{
+			ui_numRays /= 2;
+			CreateRaycasts(ui_numRays);
+		}
 		break;
 		case NUM_2:
+		{
+			ui_numRays *= 2;
+			
+			if (ui_numRays == 0)
+				ui_numRays = 1;
+
+			CreateRaycasts(ui_numRays);
+		}
 		break;
 		case NUM_3:
+		{
+			ui_numPolygons /= 2;
+			
+			if (ui_numPolygons == 0)
+				ui_numPolygons = 1;
+
+			CreateConvexPolygons(ui_numPolygons);
+		}
 		break;
 		case NUM_4:
+		{
+			ui_numPolygons *= 2;
+			CreateConvexPolygons(ui_numPolygons);
+		}
 		break;
 		case NUM_5:
+		{
+			m_toggleBroadPhaseMode = !m_toggleBroadPhaseMode;
+		}
 		break;
 		case NUM_6:
+		{
+			ReRandomize();
+		}
 		break;
 		case NUM_7:
 		break;
@@ -536,13 +569,51 @@ void Game::DebugRenderToCamera() const
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+void Game::ReRandomize()
+{
+	m_rays.clear();
+	m_convexHulls.clear();
+	m_convexPolys.clear();
+
+	CreateConvexPolygons(ui_numPolygons);
+	CreateRaycasts(ui_numRays);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 void Game::CheckRaycastsBroadPhase()
 {
-	TODO("Use the broadphase check implementing bit buckets");
-	//Since the hulls don't move, we can store their BitFields at compile time
+	double totalStartTime = GetCurrentTimeSeconds();
 
-	//We still need to get the BitFields for each ray we are going to cast
+	for (int rayIndex = 0; rayIndex < m_rays.size(); rayIndex++)
+	{
+		for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
+		{
+			bool xOverlapCondition = (m_rays[rayIndex].m_bitFieldsXY.x & m_convexHulls[hullIndex].GetBitFields().x) != 0;
+			bool yOverlapCondition = (m_rays[rayIndex].m_bitFieldsXY.y & m_convexHulls[hullIndex].GetBitFields().y) != 0;
 
+			if (xOverlapCondition && yOverlapCondition)
+			{
+				double startTime = GetCurrentTimeSeconds();
+				//Run the regular collision check for ray vs convexHull here
+				uint hits = 0;
+				hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_convexHulls[hullIndex], 0.f);
+				double endTime = GetCurrentTimeSeconds();
+
+				if (hits > 0 && IsPointOnLineSegment2D(m_hits[rayIndex].m_hitPoint, m_rayStart, m_rayEnd))
+				{
+					//DebuggerPrintf("\n Ray Number %d hit convexHull Number %d at position: ( %f, %f ) Time Taken: %.3f", rayIndex, hullIndex, m_hits[rayIndex].m_hitPoint.x, m_hits[rayIndex].m_hitPoint.y, (float)(endTime - startTime));
+				}
+				else
+				{
+					//DebuggerPrintf("\n Ray Number %d had no hit Time taken: %.3f", rayIndex, (float)(endTime - startTime));
+				}
+			}
+		}
+	}
+
+	double totalEndTime = GetCurrentTimeSeconds();
+	m_cachedRaycastTime = totalEndTime - totalStartTime;
+	DebuggerPrintf("\n Total Time for Raycasts this frame: %f", m_cachedRaycastTime);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -580,6 +651,8 @@ void Game::CheckRenderRayVsConvexHulls()
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::CheckAllRayCastsVsConvexHulls()
 {
+	double totalStartTime = GetCurrentTimeSeconds();
+
 	gProfiler->ProfilerPush("Ray vs Convex");
 
 	for (int rayIndex = 0; rayIndex < m_rays.size(); rayIndex++)
@@ -591,14 +664,18 @@ void Game::CheckAllRayCastsVsConvexHulls()
 
 			if (hits > 0 && IsPointOnLineSegment2D(m_hits[rayIndex].m_hitPoint, m_rayStart, m_rayEnd))
 			{
-				DebuggerPrintf("\n Ray Number %d hit convexHull Number %d at position: ( %f, %f )", rayIndex, hullIndex, m_hits[rayIndex].m_hitPoint.x, m_hits[rayIndex].m_hitPoint.y);
+				//DebuggerPrintf("\n Ray Number %d hit convexHull Number %d at position: ( %f, %f )", rayIndex, hullIndex, m_hits[rayIndex].m_hitPoint.x, m_hits[rayIndex].m_hitPoint.y);
 			}
 			else
 			{
-				DebuggerPrintf("\n Ray Number %d had no hit", rayIndex);
+				//DebuggerPrintf("\n Ray Number %d had no hit", rayIndex);
 			}
 		}
 	}
+
+	double totalEndTime = GetCurrentTimeSeconds();
+	m_cachedRaycastTime = totalEndTime - totalStartTime;
+	DebuggerPrintf("\n Total Time for Raycasts this frame: %f", m_cachedRaycastTime);
 
 	gProfiler->ProfilerPop();
 }
@@ -701,11 +778,16 @@ void Game::Update( float deltaTime )
 	UpdateImGUI();
 
 	UpdateVisualRay();
-	CheckAllRayCastsVsConvexHulls();
-
 	CheckRenderRayVsConvexHulls();
 
-	CheckRaycastsBroadPhase();
+	if (m_toggleBroadPhaseMode)
+	{
+		CheckRaycastsBroadPhase();
+	}
+	else
+	{
+		CheckAllRayCastsVsConvexHulls();
+	}
 
 	gProfiler->ProfilerPop();
 }
@@ -893,6 +975,9 @@ void Game::CreateRaycasts(int numRaycasts)
 			randomDirection.Normalize();
 
 			Ray2D ray(randomPosition, randomDirection);
+			IntVec2 regionBitFields = m_broadPhaseChecker.GetRegionForRay(ray);
+			ray.m_bitFieldsXY = regionBitFields;
+
 			RayHit2D hit;
 
 			m_rays.push_back(ray);

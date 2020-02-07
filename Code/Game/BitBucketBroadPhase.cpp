@@ -86,18 +86,35 @@ IntVec2 BitFieldBroadPhase::GetRegionForRay(const Ray2D& ray) const
 	//Take the world to be a convex hull we are trying to solve collisions for, then we can get a hit point on 1 of the 4 planes of the world
 	//This hit point would allow us to easily identify the region we are solving for
 
-	ConvexHull2D hull;
-	hull.PushPlane(Plane2D(Vec2::UP, -m_worldMaxs.y));
-	hull.PushPlane(Plane2D(Vec2::DOWN, 0));
-	hull.PushPlane(Plane2D(Vec2::LEFT, 0));
-	hull.PushPlane(Plane2D(Vec2::RIGHT, -m_worldMaxs.x));
+	Plane2D boundingPlanes[4];
+	boundingPlanes[0] = Plane2D(Vec2::DOWN, -m_worldMaxs.y);
+	boundingPlanes[1] = Plane2D(Vec2::UP, 0);
+	boundingPlanes[2] = Plane2D(Vec2::RIGHT, 0);
+	boundingPlanes[3] = Plane2D(Vec2::LEFT, -m_worldMaxs.x);
 
-	RayHit2D hit;
-	uint hitCount = Raycast(&hit, ray, hull);
+	float out[4];
+	Vec2 closestBoundaryHit = Vec2::ZERO;
+	float closestHitTime = 9999;
+	uint totalHits = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		uint hitCount = Raycast(&out[i], ray, boundingPlanes[i]);
+		if (hitCount > 0)
+		{
+			totalHits += hitCount;
+			if (out[i] < closestHitTime)
+			{
+				closestHitTime = out[i];
+				//This is time we can consider
+				closestBoundaryHit = ray.GetPointAtTime(closestHitTime);
+			}
+		}
+	}
 
-	ASSERT_OR_DIE(hitCount > 0, "The ray cast to world did not recieve a result");
 
-	Vec2 endPos = hit.m_hitPoint;
+	ASSERT_OR_DIE(totalHits > 0, "The ray cast to world did not recieve a result");
+
+	Vec2 endPos = closestBoundaryHit;
 	Vec2 startPos = ray.m_start;
 	
 	Vec2 minBounds;
@@ -123,8 +140,8 @@ void BitFieldBroadPhase::SetWorldDimensions(const Vec2& mins, const Vec2& maxs)
 //------------------------------------------------------------------------------------------------------------------------------
 void BitFieldBroadPhase::MakeRegionsForWorld()
 {
-	m_xDelta = (m_worldMaxs.x - m_worldMins.x) / 32.f;
-	m_yDelta = (m_worldMaxs.y - m_worldMins.y) / 32.f;
+	m_xDelta = (m_worldMaxs.x - m_worldMins.x) / m_numBitFieldsToUse;
+	m_yDelta = (m_worldMaxs.y - m_worldMins.y) / m_numBitFieldsToUse;
 
 	Vec2 yStepVec = Vec2(0.f, m_yDelta);
 	Vec2 xStepVec = Vec2(m_xDelta, 0.f);
@@ -132,14 +149,14 @@ void BitFieldBroadPhase::MakeRegionsForWorld()
 	Vec2 yMins = m_worldMins;
 	Vec2 yMaxs = m_worldMins + yStepVec;
 
-	for (int yIndex = 0; yIndex < 32; yIndex++)
+	for (int yIndex = 0; yIndex < m_numBitFieldsToUse; yIndex++)
 	{
 		//Make vertical splits
 
 		Vec2 xMins = m_worldMins;
 		Vec2 xMaxs = m_worldMins + xStepVec;
 
-		for (int xIndex = 0; xIndex < 32; xIndex++)
+		for (int xIndex = 0; xIndex < m_numBitFieldsToUse; xIndex++)
 		{
 			//Make horizontal splits
 			Region region;

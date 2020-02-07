@@ -20,6 +20,6 @@
 #endif
 
 #if defined(_DEBUG)
-#define PROFILING_ENABLED
+//#define PROFILING_ENABLED
 #elif defined(_RELEASE)
 #endif

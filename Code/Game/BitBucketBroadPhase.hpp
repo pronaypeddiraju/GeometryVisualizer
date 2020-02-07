@@ -41,6 +41,8 @@ private:
 	float		m_xDelta;
 	float		m_yDelta;
 
+	const int	m_numBitFieldsToUse = 30;
+
 	std::vector<Region>	m_regions;
 };
 
