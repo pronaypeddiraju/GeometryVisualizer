@@ -598,15 +598,6 @@ void Game::CheckRaycastsBroadPhase()
 				uint hits = 0;
 				hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_convexHulls[hullIndex], 0.f);
 				double endTime = GetCurrentTimeSeconds();
-
-				if (hits > 0 && IsPointOnLineSegment2D(m_hits[rayIndex].m_hitPoint, m_rayStart, m_rayEnd))
-				{
-					//DebuggerPrintf("\n Ray Number %d hit convexHull Number %d at position: ( %f, %f ) Time Taken: %.3f", rayIndex, hullIndex, m_hits[rayIndex].m_hitPoint.x, m_hits[rayIndex].m_hitPoint.y, (float)(endTime - startTime));
-				}
-				else
-				{
-					//DebuggerPrintf("\n Ray Number %d had no hit Time taken: %.3f", rayIndex, (float)(endTime - startTime));
-				}
 			}
 		}
 	}
@@ -661,15 +652,6 @@ void Game::CheckAllRayCastsVsConvexHulls()
 		{
 			uint hits = 0;
 			hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_convexHulls[hullIndex], 0.f);
-
-			if (hits > 0 && IsPointOnLineSegment2D(m_hits[rayIndex].m_hitPoint, m_rayStart, m_rayEnd))
-			{
-				//DebuggerPrintf("\n Ray Number %d hit convexHull Number %d at position: ( %f, %f )", rayIndex, hullIndex, m_hits[rayIndex].m_hitPoint.x, m_hits[rayIndex].m_hitPoint.y);
-			}
-			else
-			{
-				//DebuggerPrintf("\n Ray Number %d had no hit", rayIndex);
-			}
 		}
 	}
 
