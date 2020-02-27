@@ -1,36 +1,30 @@
 #pragma once
 //------------------------------------------------------------------------------------------------------------------------------
-#include "Engine/Math/Transform2.hpp"
-#include "Engine/Math/Rigidbody2D.hpp"
-
-class PhysicsSystem;
-class Collider2D;
-
-//------------------------------------------------------------------------------------------------------------------------------
-enum eGeometryType
-{
-	TYPE_UNKNOWN = -1,
-
-	AABB2_GEOMETRY,
-	DISC_GEOMETRY,
-
-	BOX_GEOMETRY,
-	CAPSULE_GEOMETRY,
-
-	NUM_GEOMETRY_TYPES
-};
+#include "Engine/Math/ConvexHull2D.hpp"
+#include "Engine/Math/ConvexPoly2D.hpp"
 
 //------------------------------------------------------------------------------------------------------------------------------
 class Geometry
 {
 public:
-	explicit Geometry(PhysicsSystem& physicsSystem, eSimulationType simulationType, eGeometryType geometryType, const Vec2& cursorPosition, float rotationDegrees = 0.f, float length = 0.f, const Vec2& endPos = Vec2::ZERO, bool staticFloor = false);
+	Geometry();
+	explicit Geometry(const std::vector<Vec2>& constructPoints);	//To construct ConvexPoly2D using the construct points;
+	explicit Geometry(const std::vector<Plane2D>& constructPlanes);	//To construct ConvexHull2D using the construct planes;
 	~Geometry();
 
+	const ConvexPoly2D&			GetConvexPoly2D() const;
+	const ConvexHull2D&			GetConvexHull2D() const;
+
+	void						SetBitFieldsForBitBucketBroadPhase(const IntVec2& bitFields);
+	const IntVec2&				GetBitFields() const;
+
+	void						MakeHullFromOwningPolygon();	//Makes m_convexHull using m_convexPoly;
 
 public:
-	Transform2				m_transform; 
-	Rigidbody2D				*m_rigidbody;
-	Collider2D				*m_collider; 
-	eGeometryType			m_geometryType = TYPE_UNKNOWN;
+	
+	ConvexPoly2D	m_convexPoly;
+	ConvexHull2D	m_convexHull;
+
+	//For broad-phase checks using bitBuckets
+	IntVec2				m_bitFieldsXY;
 };

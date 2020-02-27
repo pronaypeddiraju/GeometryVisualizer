@@ -61,7 +61,7 @@ public:
 	static Vec2				GetClientToWorldPosition2D(IntVec2 mousePosInClient, IntVec2 ClientBounds);
 
 private:
-	void					CreateConvexPolygons(int numPolygons);
+	void					CreateConvexGeometry(int numPolygons);
 	void					CreateRaycasts(int numRaycasts);
 	void					CreateRenderRay();
 	
@@ -123,21 +123,25 @@ public:
 	float ui_cameraClearColor[3] = { 1.f, 1.f, 1.f };
 	float ui_polygonColor[3] = {0.5f, 0.5f, 0.5f};
 
-	int ui_numPolygons = INIT_NUM_POLYGONS;
-	int ui_minPolygons = 1;
-	int ui_maxPolygons = 1000;
+	int ui_numGeometry = INIT_NUM_POLYGONS;
+	int ui_minGeometry = 1;
+	int ui_maxGeometry = 1000;
 
 	int ui_numRays = INIT_NUM_RAYCASTS;
 	int ui_minRays = 1;
 	int ui_maxRays = 4096;
 
 	//Convex Geometry created in Game
-	std::vector<ConvexPoly2D>	m_convexPolys;
-	int							m_numPolygonsLastFrame;
+	//std::vector<ConvexPoly2D>	m_convexPolys;
+	//int							m_numPolygonsLastFrame;
 	//Rgba						m_polygonColor = Rgba::ORGANIC_GREY;
 
-	std::vector<ConvexHull2D>	m_convexHulls;
-	int							m_numHullsLastFrame;
+	//std::vector<ConvexHull2D>	m_convexHulls;
+	//int							m_numHullsLastFrame;
+
+	//Geometry Objects repository
+	std::vector<Geometry>		m_geometry;
+	int							m_numGeometryLastFrame;
 
 	//Raycasts in the scene
 	std::vector<Ray2D>			m_rays;

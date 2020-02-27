@@ -23,6 +23,7 @@ GameCursor::~GameCursor()
 void GameCursor::StartUp()
 {
 	m_cursorPosition = Vec2(WORLD_CENTER_X, WORLD_CENTER_Y);
+	m_squirrelFont = g_renderContext->CreateOrGetBitmapFontFromFile("SquirrelFixedFont");
 }
 
 void GameCursor::Update( float deltaTime )
@@ -54,8 +55,27 @@ void GameCursor::Render() const
 	g_renderContext->BindTextureViewWithSampler(0U, nullptr);
 	g_renderContext->DrawVertexArray(lineVerts);
 	g_renderContext->DrawVertexArray(ringVerts);
+
+	if (m_enableDebug)
+	{
+		DebugRenderCursor();
+	}
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
+void GameCursor::DebugRenderCursor() const
+{
+	//Draw any debug information you want here
+	std::vector<Vertex_PCU> fontVerts;
+	AABB2 textBox = AABB2(m_cursorPosition + Vec2(-50.f, 0.f), m_cursorPosition + Vec2(50.f, 10.f));
+	std::string displayText = Stringf("X: %f , Y: %f", m_cursorPosition.x, m_cursorPosition.y);
+	m_squirrelFont->AddVertsForTextInBox2D(fontVerts, textBox, 10.f, displayText);
+
+	g_renderContext->BindTextureViewWithSampler(0U, m_squirrelFont->GetTexture());
+	g_renderContext->DrawVertexArray(fontVerts);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 void GameCursor::HandleKeyPressed( unsigned char keyCode )
 {
 	switch( keyCode )

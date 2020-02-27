@@ -110,7 +110,8 @@ void Game::StartUp()
 	UnitTestRunAllCategories(10);
 
 	//Generate Random Convex Polygons to render on screen
-	CreateConvexPolygons(INIT_NUM_POLYGONS);
+	
+	CreateConvexGeometry(INIT_NUM_POLYGONS);
 	CreateRaycasts(INIT_NUM_RAYCASTS);
 
 	//Setup the render ray
@@ -181,18 +182,18 @@ void Game::UpdateImGUI()
 	ImGui::SameLine();
 	if (ImGui::Button("Reduce by half"))
 	{
-		ui_numPolygons /= 2;
-		CreateConvexPolygons(ui_numPolygons);
+		ui_numGeometry /= 2;
+		CreateConvexGeometry(ui_numGeometry);
 	}
 
 	ImGui::SameLine();
 	if (ImGui::Button("Double"))
 	{
-		ui_numPolygons *= 2;
-		CreateConvexPolygons(ui_numPolygons);
+		ui_numGeometry *= 2;
+		CreateConvexGeometry(ui_numGeometry);
 	}
 
-	ImGui::SliderInt("Number of Polygons", &ui_numPolygons, ui_minPolygons, ui_maxPolygons);
+	ImGui::SliderInt("Number of Polygons", &ui_numGeometry, ui_minGeometry, ui_maxGeometry);
 	
 	ImGui::Text("Rays :");
 	ImGui::SameLine();
@@ -307,18 +308,18 @@ void Game::HandleKeyPressed(unsigned char keyCode)
 		break;
 		case NUM_3:
 		{
-			ui_numPolygons /= 2;
+			ui_numGeometry /= 2;
 			
-			if (ui_numPolygons == 0)
-				ui_numPolygons = 1;
+			if (ui_numGeometry == 0)
+				ui_numGeometry = 1;
 
-			CreateConvexPolygons(ui_numPolygons);
+			CreateConvexGeometry(ui_numGeometry);
 		}
 		break;
 		case NUM_4:
 		{
-			ui_numPolygons *= 2;
-			CreateConvexPolygons(ui_numPolygons);
+			ui_numGeometry *= 2;
+			CreateConvexGeometry(ui_numGeometry);
 		}
 		break;
 		case NUM_5:
@@ -519,9 +520,9 @@ void Game::RenderAllGeometry() const
 	//Render all the geometry in the scene
 	std::vector<Vertex_PCU> convexPolyVerts;
 
-	for (int polygonIndex = 0; polygonIndex < m_convexPolys.size(); polygonIndex++)
+	for (int polygonIndex = 0; polygonIndex < m_geometry.size(); polygonIndex++)
 	{
-		AddVertsForSolidConvexPoly2D(convexPolyVerts, m_convexPolys[polygonIndex], Rgba(ui_polygonColor[0], ui_polygonColor[1], ui_polygonColor[2], 1.f));
+		AddVertsForSolidConvexPoly2D(convexPolyVerts, m_geometry[polygonIndex].GetConvexPoly2D(), Rgba(ui_polygonColor[0], ui_polygonColor[1], ui_polygonColor[2], 1.f));
 	}
 
 	g_renderContext->BindTextureViewWithSampler(0U, nullptr);
@@ -571,11 +572,10 @@ void Game::DebugRenderToCamera() const
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::ReRandomize()
 {
-	m_rays.clear();
-	m_convexHulls.clear();
-	m_convexPolys.clear();
+	m_rays.clear();	
+	m_geometry.clear();
 
-	CreateConvexPolygons(ui_numPolygons);
+	CreateConvexGeometry(ui_numGeometry);
 	CreateRaycasts(ui_numRays);
 }
 
@@ -586,24 +586,22 @@ void Game::CheckRaycastsBroadPhase()
 
 	for (int rayIndex = 0; rayIndex < m_rays.size(); rayIndex++)
 	{
-		for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
+		for (int hullIndex = 0; hullIndex < m_geometry.size(); hullIndex++)
 		{
-			bool xOverlapCondition = (m_rays[rayIndex].m_bitFieldsXY.x & m_convexHulls[hullIndex].GetBitFields().x) != 0;
-			bool yOverlapCondition = (m_rays[rayIndex].m_bitFieldsXY.y & m_convexHulls[hullIndex].GetBitFields().y) != 0;
+			bool xOverlapCondition = (m_rays[rayIndex].m_bitFieldsXY.x & m_geometry[hullIndex].GetBitFields().x) != 0;
+			bool yOverlapCondition = (m_rays[rayIndex].m_bitFieldsXY.y & m_geometry[hullIndex].GetBitFields().y) != 0;
 
 			if (xOverlapCondition && yOverlapCondition)
 			{
-				double startTime = GetCurrentTimeSeconds();
 				//Run the regular collision check for ray vs convexHull here
 				uint hits = 0;
-				hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_convexHulls[hullIndex], 0.f);
-				double endTime = GetCurrentTimeSeconds();
+				hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_geometry[hullIndex].GetConvexHull2D(), 0.f);
 			}
 		}
 	}
 
 	double totalEndTime = GetCurrentTimeSeconds();
-	m_cachedRaycastTime = totalEndTime - totalStartTime;
+	m_cachedRaycastTime = (float)(totalEndTime - totalStartTime);
 	DebuggerPrintf("\n Total Time for Raycasts this frame: %f", m_cachedRaycastTime);
 }
 
@@ -613,15 +611,17 @@ void Game::CheckRenderRayVsConvexHulls()
 	float bestHit = 9999;
 
 	//Check the render ray vs all the convex hulls in the scene
-	for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
+	for (int hullIndex = 0; hullIndex < m_geometry.size(); hullIndex++)
 	{
-		RayHit2D* out = new RayHit2D[m_convexHulls[hullIndex].GetNumPlanes()];
-		uint hits = Raycast(out, m_renderedRay, m_convexHulls[hullIndex], 0.f);
+		int numPossibleHits = m_geometry[hullIndex].GetConvexHull2D().GetNumPlanes();
+		RayHit2D* out = new RayHit2D[numPossibleHits];
+		
+		uint hits = Raycast(out, m_renderedRay, m_geometry[hullIndex].GetConvexHull2D(), 0.f);
 
 		if (hits > 0 && IsPointOnLineSegment2D(out->m_hitPoint, m_rayStart, m_rayEnd) && out->m_timeAtHit < bestHit)
 		{
 			m_isHitting = true;
-			DebuggerPrintf("\n Ray hit convexHull");
+			//DebuggerPrintf("\n Ray hit convexHull");
 			bestHit = out->m_timeAtHit;
 			m_drawRayStart = m_rayStart;
 			m_drawRayEnd = out->m_hitPoint;
@@ -631,7 +631,7 @@ void Game::CheckRenderRayVsConvexHulls()
 		{
 			m_isHitting = false;
 			m_drawRayStart = m_rayStart;
-			m_drawRayEnd = Vec2::ZERO;
+			m_drawRayEnd = m_rayStart;
 			m_drawSurfanceNormal = Vec2::ZERO;
 		}
 
@@ -648,15 +648,15 @@ void Game::CheckAllRayCastsVsConvexHulls()
 
 	for (int rayIndex = 0; rayIndex < m_rays.size(); rayIndex++)
 	{
-		for (int hullIndex = 0; hullIndex < m_convexHulls.size(); hullIndex++)
+		for (int hullIndex = 0; hullIndex < m_geometry.size(); hullIndex++)
 		{
 			uint hits = 0;
-			hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_convexHulls[hullIndex], 0.f);
+			hits = Raycast(&m_hits[rayIndex], m_renderedRay, m_geometry[hullIndex].GetConvexHull2D(), 0.f);
 		}
 	}
 
 	double totalEndTime = GetCurrentTimeSeconds();
-	m_cachedRaycastTime = totalEndTime - totalStartTime;
+	m_cachedRaycastTime = (float)(totalEndTime - totalStartTime);
 	DebuggerPrintf("\n Total Time for Raycasts this frame: %f", m_cachedRaycastTime);
 
 	gProfiler->ProfilerPop();
@@ -686,7 +686,7 @@ ConvexPoly2D Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) co
 	std::vector<Vec2> convexPolyPoints;
 
 	float startAngle;
-	Vec2 point = GetRandomPointOnDisc2D(center, radius, 10.f, 170.f, startAngle);
+	Vec2 point = GetRandomPointOnDisc2D(center, radius, 10.f, 110.f, startAngle);
 	convexPolyPoints.push_back(point);
 
 	float currentAngle = startAngle;
@@ -694,7 +694,7 @@ ConvexPoly2D Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) co
 
 	while (!completedCircle)
 	{
-		point = GetRandomPointOnDisc2D(center, radius, currentAngle, currentAngle + 170.f, currentAngle);
+		point = GetRandomPointOnDisc2D(center, radius, currentAngle, currentAngle + 110.f, currentAngle);
 		
 		if (currentAngle > 360.f)
 		{
@@ -703,6 +703,11 @@ ConvexPoly2D Game::MakeConvexPoly2DFromDisc(const Vec2& center, float radius) co
 		}
 
 		convexPolyPoints.push_back(point);
+	}
+
+	if (convexPolyPoints.size() < 3)
+	{
+		MakeConvexPoly2DFromDisc(center, radius);
 	}
 
 	ConvexPoly2D polygon(convexPolyPoints);
@@ -716,7 +721,7 @@ void Game::PostRender()
 	{
 		//SetStartupDebugRenderObjects();
 
-		ColorTargetView* ctv = g_renderContext->GetFrameColorTarget();
+		//ColorTargetView* ctv = g_renderContext->GetFrameColorTarget();
 		//Setup debug render client data
 		g_debugRenderer->SetClientDimensions( (int)WORLD_HEIGHT, (int)WORLD_WIDTH);
 		g_debugRenderer->SetWorldSize2D(m_mainCamera->GetOrthoBottomLeft(), m_mainCamera->GetOrthoTopRight());
@@ -745,10 +750,10 @@ void Game::Update( float deltaTime )
 		m_consoleDebugOnce = true;
 	}
 
-	if (m_numPolygonsLastFrame != ui_numPolygons)
+	if (m_numGeometryLastFrame != ui_numGeometry)
 	{
-		CreateConvexPolygons(ui_numPolygons);
-		m_numPolygonsLastFrame = ui_numPolygons;
+		CreateConvexGeometry(ui_numGeometry);
+		m_numGeometryLastFrame = ui_numGeometry;
 	}
 
 	if (m_numRaysLastFrame != ui_numRays)
@@ -891,14 +896,14 @@ STATIC Vec2 Game::GetClientToWorldPosition2D( IntVec2 mousePosInClient, IntVec2 
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
-void Game::CreateConvexPolygons(int numPolygons)
+void Game::CreateConvexGeometry(int numPolygons)
 {
 	//early out if we have the correct number of polygons
-	if (numPolygons == m_convexPolys.size())
+	if (numPolygons == m_geometry.size())
 		return;
 
 	//If we have lesser than what we need, let's make some
-	if (numPolygons > m_convexPolys.size())
+	if (numPolygons > m_geometry.size())
 	{
 		for (int polygonIndex = 0; polygonIndex < numPolygons; polygonIndex++)
 		{
@@ -909,27 +914,24 @@ void Game::CreateConvexPolygons(int numPolygons)
 			randomPosition.x = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.x + randomRadius + BUFFER_SPACE, m_worldBounds.m_maxBounds.x - randomRadius - BUFFER_SPACE);
 			randomPosition.y = g_RNG->GetRandomFloatInRange(m_worldBounds.m_minBounds.y + randomRadius + BUFFER_SPACE, m_worldBounds.m_maxBounds.y - randomRadius - BUFFER_SPACE);
 
-			ConvexPoly2D polygon = MakeConvexPoly2DFromDisc(randomPosition, randomRadius);
+			Geometry geometry;
+			geometry.m_convexPoly = MakeConvexPoly2DFromDisc(randomPosition, randomRadius);
 			IntVec2 bitField;
 			
-			bitField = m_broadPhaseChecker.GetRegionForConvexPoly(polygon);
-			polygon.SetBitFieldsForBitBucketBroadPhase(bitField);
+			bitField = m_broadPhaseChecker.GetRegionForConvexPoly(geometry.m_convexPoly);
+			geometry.SetBitFieldsForBitBucketBroadPhase(bitField);
 
-			ConvexHull2D hull;
-			hull.MakeConvexHullFromConvexPolyon(polygon);
-			hull.SetBitFieldsForBitBucketBroadPhase(bitField);
+			geometry.m_convexHull.MakeConvexHullFromConvexPolyon(geometry.m_convexPoly);
 
-			m_convexPolys.push_back(polygon);
-			m_convexHulls.push_back(hull);
+			m_geometry.push_back(geometry);
 		}
 	}
 	else
 	{
 		//We have more polygons than we need do just discard some of them
-		while (m_convexPolys.size() > numPolygons)
+		while (m_geometry.size() > numPolygons)
 		{
-			m_convexPolys.pop_back();
-			m_convexHulls.pop_back();
+			m_geometry.pop_back();
 		}
 	}
 }
