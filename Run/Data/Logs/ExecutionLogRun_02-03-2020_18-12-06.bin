@@ -1,0 +1,11 @@
+Log Initialized
+
+ Log Entry: 
+	 Time: 769439.112811Filter: 
+ PrintFilter
+	 Message: I am a Logf call
+
+ Log Entry: 
+	 Time: 769439.112856Filter: 
+ FlushFilter
+	 Message: I am now calling flush

@@ -9,23 +9,25 @@
 #include "Game/Game.hpp"
 
 //------------------------------------------------------------------------------------------------------------------------------
-
 GameCursor::GameCursor()
 {
 	StartUp();
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
 GameCursor::~GameCursor()
 {
 
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
 void GameCursor::StartUp()
 {
 	m_cursorPosition = Vec2(WORLD_CENTER_X, WORLD_CENTER_Y);
 	m_squirrelFont = g_renderContext->CreateOrGetBitmapFontFromFile("SquirrelFixedFont");
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
 void GameCursor::Update( float deltaTime )
 {
 	UNUSED(deltaTime);
@@ -39,6 +41,7 @@ void GameCursor::Update( float deltaTime )
 	m_cursorPosition = worldPos;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
 void GameCursor::Render() const
 {
 	std::vector<Vertex_PCU> ringVerts;
@@ -95,6 +98,7 @@ void GameCursor::HandleKeyPressed( unsigned char keyCode )
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
 void GameCursor::HandleKeyReleased( unsigned char keyCode )
 {
 	switch( keyCode )
@@ -114,13 +118,21 @@ void GameCursor::HandleKeyReleased( unsigned char keyCode )
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
 void GameCursor::SetCursorPosition( const Vec2& position )
 {
 	m_cursorPosition = position;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
 const Vec2& GameCursor::GetCursorPositon() const
 {
 	return m_cursorPosition;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void GameCursor::SetDebugMode(bool debugMode)
+{
+	m_enableDebug = debugMode;
 }
 

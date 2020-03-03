@@ -22,16 +22,20 @@
 #include "Engine/Renderer/DebugRender.hpp"
 #include "Engine/Renderer/RenderContext.hpp"
 #include "Engine/Renderer/Shader.hpp"
-#include <ThirdParty/TinyXML2/tinyxml2.h>
-
-//Game systems
-#include "Game/GameCursor.hpp"
+#include "Engine/Core/FileUtils.hpp"
 #include "Engine/Math/Ray2D.hpp"
 #include "Engine/Math/Plane2D.hpp"
 #include "Engine/Math/ConvexHull2D.hpp"
 #include "Engine/Commons/Profiler/ProfileLogScope.hpp"
 #include "Engine/Commons/Profiler/Profiler.hpp"
 #include "Engine/Commons/EngineCommon.hpp"
+#include "Engine/Core/BufferReadUtils.hpp"
+#include "Engine/Core/BufferWriteUtils.hpp"
+#include <ThirdParty/TinyXML2/tinyxml2.h>
+
+//Game systems
+#include "Game/GameCursor.hpp"
+
 
 //Globals
 float g_shakeAmount = 0.0f;
@@ -53,9 +57,6 @@ Game::Game()
 	g_debugRenderer->SetDebugFont(m_squirrelFont);
 
 	g_devConsole->PrintString(Rgba::BLUE, "this is a test string");
-	//g_devConsole->PrintString(Rgba::RED, "this is also a test string");
-	//g_devConsole->PrintString(Rgba::GREEN, "damn this dev console lit!");
-	//g_devConsole->PrintString(Rgba::WHITE, "Last thing I printed");
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -66,9 +67,160 @@ Game::~Game()
 	m_mainCamera = nullptr;
 }
 
+//------------------------------------------------------------------------------------------------
+void AppendTestFileBufferData(BufferWriteUtils& bufWrite, eBufferEndianness endianMode)
+{
+	bufWrite.SetEndianMode(endianMode);
+	bufWrite.AppendChar('T');
+	bufWrite.AppendChar('E');
+	bufWrite.AppendChar('S');
+	bufWrite.AppendChar('T');
+	bufWrite.AppendByte(1); // Version 1
+	bufWrite.AppendBool(bufWrite.IsEndianModeBig()); // written as byte 0 or 1
+	bufWrite.AppendUint32(0x12345678);
+	bufWrite.AppendInt32(-7); // signed 32-bit int
+	bufWrite.AppendFloat(1.f); // in memory looks like hex: 00 00 80 3F (or 3F 80 00 00 in big endian)
+	bufWrite.AppendDouble(3.1415926535897932384626433832795); // actually 3.1415926535897931 (best it can do)
+	bufWrite.AppendStringZeroTerminated("Hello"); // written with a trailing 0 ('\0') after (6 bytes total)
+	bufWrite.AppendStringAfter32BitLength("Is this thing on?"); // uint 17, then 17 chars (no zero-terminator after)
+	Rgba color; 
+	color.SetFromBytes(200, 100, 50, 255);
+	bufWrite.AppendRgba(color); // four bytes in RGBA order (endian-independent)
+	bufWrite.AppendByte(8); // 0x08 == 8 (byte)
+	color.SetFromBytes(238, 221, 204, 255);
+	bufWrite.AppendRgb(color); // written as 3 bytes (RGB) only; ignores Alpha
+	bufWrite.AppendByte(9); // 0x09 == 9 (byte)
+	bufWrite.AppendIntVec2(IntVec2(1920, 1080));
+	bufWrite.AppendVec2(Vec2(-0.6f, 0.8f));
+	color.SetFromBytes(100, 101, 102, 103);
+	bufWrite.AppendVertexPCU(Vertex_PCU(Vec3(3.f, 4.f, 5.f), color, Vec2(0.125f, 0.625f)));
+}
+
+//------------------------------------------------------------------------------------------------
+void ParseTestFileBufferData(BufferReadUtils& bufParse, eBufferEndianness endianMode)
+{
+	// Parse known test elements
+	bufParse.SetEndianMode(endianMode);
+	char fourCC0_T = bufParse.ParseChar(); // 'T' == 0x54 hex == 84 decimal
+	char fourCC1_E = bufParse.ParseChar(); // 'E' == 0x45 hex == 84 decimal
+	char fourCC2_S = bufParse.ParseChar(); // 'S' == 0x53 hex == 69 decimal
+	char fourCC3_T = bufParse.ParseChar(); // 'T' == 0x54 hex == 84 decimal
+	unsigned char version = bufParse.ParseByte(); // version 1
+	bool isBigEndian = bufParse.ParseBool(); // written in buffer as byte 0 or 1
+	unsigned int largeUint = bufParse.ParseUint32(); // 0x12345678
+	int negativeSeven = bufParse.ParseInt32(); // -7 (as signed 32-bit int)
+	float oneF = bufParse.ParseFloat(); // 1.0f
+	double pi = bufParse.ParseDouble(); // 3.1415926535897932384626433832795 (or as best it can)
+
+	std::string helloString, isThisThingOnString;
+	bufParse.ParseStringZeroTerminated(helloString); // written with a trailing 0 ('\0') after (6 bytes total)
+	bufParse.ParseStringAfter32BitLength(isThisThingOnString); // written as uint 17, then 17 characters (no zero-terminator after)
+
+	Rgba rustColor = bufParse.ParseRgba(); // Rgba( 200, 100, 50, 255 )
+	unsigned char eight = bufParse.ParseByte(); // 0x08 == 8 (byte)
+	Rgba seashellColor = bufParse.ParseRgb(); // Rgba(238,221,204) written as 3 bytes (RGB) only; ignores Alpha
+	unsigned char nine = bufParse.ParseByte(); // 0x09 == 9 (byte)
+	IntVec2 highDefRes = bufParse.ParseIntVec2(); // IntVector2( 1920, 1080 )
+	Vec2 normal2D = bufParse.ParseVec2(); // Vector2( -0.6f, 0.8f )
+	Vertex_PCU vertex = bufParse.ParseVertexPCU(); // VertexPCU( 3.f, 4.f, 5.f, Rgba(100,101,102,103), 0.125f, 0.625f ) );
+
+	// Validate actual values parsed
+	GUARANTEE_RECOVERABLE((fourCC0_T == 'T'), "Failed at 1");
+	GUARANTEE_RECOVERABLE(fourCC1_E == 'E', "Failed at 2");
+	GUARANTEE_RECOVERABLE(fourCC2_S == 'S', "Failed at 3");
+	GUARANTEE_RECOVERABLE(fourCC3_T == 'T', "Failed at 4");
+	GUARANTEE_RECOVERABLE(version == 1, "Failed at 5");
+	GUARANTEE_RECOVERABLE(isBigEndian == bufParse.IsEndianModeBig(), "Failed at 6");
+	GUARANTEE_RECOVERABLE(largeUint == 0x12345678, "Failed at 7");
+	GUARANTEE_RECOVERABLE(negativeSeven == -7, "Failed at 8");
+	GUARANTEE_RECOVERABLE(oneF == 1.f, "Failed at 9");
+	GUARANTEE_RECOVERABLE(pi == 3.1415926535897932384626433832795, "Failed at 10");
+	GUARANTEE_RECOVERABLE(helloString == "Hello", "Failed at 11");
+	GUARANTEE_RECOVERABLE(isThisThingOnString == "Is this thing on?", "Failed at 12");
+	Rgba color;
+	color.SetFromBytes(200, 100, 50, 255);
+	GUARANTEE_RECOVERABLE(rustColor == color, "Failed at 13");
+	GUARANTEE_RECOVERABLE(eight == 8, "Failed at 14");
+	color.SetFromBytes(238, 221, 204, 255);
+	GUARANTEE_RECOVERABLE(seashellColor == color, "Failed at 15");
+	GUARANTEE_RECOVERABLE(nine == 9, "Failed at 16");
+	GUARANTEE_RECOVERABLE(highDefRes == IntVec2(1920, 1080), "Failed at 17");
+	GUARANTEE_RECOVERABLE(normal2D == Vec2(-0.6f, 0.8f), "Failed at 18");
+	GUARANTEE_RECOVERABLE(vertex.m_position == Vec3(3.f, 4.f, 5.f), "Failed at 19");
+	color.SetFromBytes(100, 101, 102, 103);
+	GUARANTEE_RECOVERABLE(vertex.m_color == color, "Failed at 20");
+	GUARANTEE_RECOVERABLE(vertex.m_uvTexCoords == Vec2(0.125f, 0.625f), "Failed at 21");
+}
+
+//------------------------------------------------------------------------------------------------
+constexpr int TEST_BUF_SIZE = 204;
+
+//-----------------------------------------------------------------------------------------------
+bool Command_TestBinaryFileLoad(NamedProperties& args)
+{
+	const char* testFilePath = "Data/Bin/Test.bin";
+	g_devConsole->PrintString(g_devConsole->CONSOLE_INFO, Stringf("Loading test binary file '%s'...\n", testFilePath));
+
+	// Load from disk
+	Buffer buf;
+	bool success = LoadBinaryFileToExistingBuffer(testFilePath, buf);
+	if (!success)
+	{
+		g_devConsole->PrintString(g_devConsole->CONSOLE_ECHO_COLOR, Stringf("FAILED to load file %s\n", testFilePath));
+		return false;
+	}
+
+	// Parse and verify - note that the test data is in the file TWICE; first as little-endian, then again as big
+	BufferReadUtils bufParse(buf);
+	GUARANTEE_RECOVERABLE(bufParse.GetRemainingSize() == TEST_BUF_SIZE, "Size of the buffer is not correct");
+	ParseTestFileBufferData(bufParse, eBufferEndianness::BUFFER_LITTLE_ENDIAN);
+	ParseTestFileBufferData(bufParse, eBufferEndianness::BUFFER_BIG_ENDIAN);
+	GUARANTEE_RECOVERABLE(bufParse.GetRemainingSize() == 0, "Remaining size in the buffer is not 0");
+
+	g_devConsole->PrintString(g_devConsole->CONSOLE_INFO, Stringf("...successfully read file %s\n", testFilePath));
+	return false;
+}
+
+
+//-----------------------------------------------------------------------------------------------
+bool Command_TestBinaryFileSave(NamedProperties& args)
+{
+	const char* testFilePath = "Data/Bin/Test.bin";
+	g_devConsole->PrintString(g_devConsole->CONSOLE_INFO, Stringf("Loading test binary file '%s'...\n", testFilePath));
+
+	// Create the test file buffer
+	Buffer buf;
+	buf.reserve(1000);
+	BufferWriteUtils bufWrite(buf);
+	GUARANTEE_RECOVERABLE(bufWrite.GetTotalSize() == 0, "Total buffer size was not 0");
+	GUARANTEE_RECOVERABLE(bufWrite.GetAppendedSize() == 0, "Total appended size was not 0");
+	// Push the test data into the file TWICE; first as little-endian, then a second time after as big-endian
+	AppendTestFileBufferData(bufWrite, eBufferEndianness::BUFFER_LITTLE_ENDIAN);
+	AppendTestFileBufferData(bufWrite, eBufferEndianness::BUFFER_BIG_ENDIAN);
+	GUARANTEE_RECOVERABLE(bufWrite.GetAppendedSize() == TEST_BUF_SIZE, "Appended size was not buffer size");
+	GUARANTEE_RECOVERABLE(bufWrite.GetTotalSize() == TEST_BUF_SIZE, "Total size was not the buffer size");
+
+	// Write to disk
+	bool success = SaveBinaryFileFromBuffer(testFilePath, buf);
+	if (success)
+	{
+		g_devConsole->PrintString(g_devConsole->CONSOLE_INFO, Stringf("...successfully wrote file %s\n", testFilePath));
+	}
+	else
+	{
+		g_devConsole->PrintString(g_devConsole->CONSOLE_ECHO_COLOR, Stringf("FAILED to write file %s\n", testFilePath));
+		g_devConsole->PrintString(g_devConsole->CONSOLE_ECHO_COLOR, Stringf("(does the folder exist?)\n"));
+	}
+
+	return false;
+}
+
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::StartUp()
 {
+	g_eventSystem->SubscribeEventCallBackFn("TestBinaryFileLoad", Command_TestBinaryFileLoad);
+	g_eventSystem->SubscribeEventCallBackFn("TestBinaryFileSave", Command_TestBinaryFileSave);
+
 	//Setup mouse startup values
 	IntVec2 clientCenter = g_windowContext->GetClientCenter();
 	g_windowContext->SetClientMousePosition(clientCenter);
@@ -168,6 +320,78 @@ UNITTEST("RaycastTests", "MathUtils", 1)
 	return true;
 }
 
+UNITTEST("BinaryFileRead", "FileUtils", 1)
+{
+	std::string fileReadPath = BINARY_FILES_PATH + std::string("test.bin");
+	std::vector<uchar> testReadBuffer;
+	bool result = LoadBinaryFileToExistingBuffer(fileReadPath, testReadBuffer);
+
+	if (!result)
+	{
+		return false;
+	}
+
+	for (int i = 0; i < testReadBuffer.size(); i++)
+	{
+		DebuggerPrintf("%c", testReadBuffer[i]);
+	}
+
+	return true;
+}
+
+UNITTEST("BufferParser", "ReadBufferTest", 1)
+{
+	// Just trying stuff out here initially to see if buffer writing/parsing seems to be working
+	Vec3 pos(3.f, 4.f, 5.f);
+	IntVec2 coords(3, 4);
+
+	BufferReadUtils bufVec3((unsigned char*)&pos, sizeof(pos));
+	float x = bufVec3.ParseFloat();
+	float y = bufVec3.ParseFloat();
+	float z = bufVec3.ParseFloat();
+
+	BufferReadUtils bufLittle((unsigned char*)&coords, sizeof(coords));
+	int x1 = bufLittle.ParseInt32();
+	int y1 = bufLittle.ParseInt32();
+
+	BufferReadUtils bufBig((unsigned char*)&coords, sizeof(coords), eBufferEndianness::BUFFER_BIG_ENDIAN);
+	int x2 = bufBig.ParseInt32();
+	int y2 = bufBig.ParseInt32();
+
+	BufferReadUtils bufNative((unsigned char*)&coords, sizeof(coords), eBufferEndianness::BUFFER_NATIVE);
+	int x3 = bufNative.ParseInt32();
+	int y3 = bufNative.ParseInt32();
+
+	Buffer b;
+	b.push_back(0xff);
+	b.push_back(0x00);
+	b.push_back(0xa3);
+
+	BufferWriteUtils bw(b, eBufferEndianness::BUFFER_BIG_ENDIAN);
+	bw.AppendByte(0x12);
+	bw.AppendByte(0x34);
+	bw.AppendByte(0x56);
+	bw.AppendByte(0x78);
+	bw.AppendInt32(42);
+	bw.AppendFloat(3.14159265f);
+
+	BufferWriteUtils bw2(b, eBufferEndianness::BUFFER_LITTLE_ENDIAN);
+	bw2.AppendInt32(15);
+
+	double dp1 = 3.1415926535897932384626433832795;
+	BufferReadUtils dpBuf((unsigned char*)&dp1, sizeof(dp1));
+	double dp2 = dpBuf.ParseDouble();
+	GUARANTEE_RECOVERABLE(dp1 == dp2, "Value read and value from write is not the same");
+
+	Buffer dpBuf2;
+	BufferWriteUtils dpWrite2(dpBuf2);
+	dpWrite2.AppendDouble(dp1);
+
+	BufferReadUtils dpParse2(dpBuf2);
+	double dp3 = dpParse2.ParseDouble();
+	GUARANTEE_RECOVERABLE(dp1 == dp3, "Value read and value from write is not the same");
+	return true;
+}
 
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::UpdateImGUI()
@@ -215,6 +439,9 @@ void Game::UpdateImGUI()
 
 	ImGui::Checkbox("Enable Bit Bucket Broad-phase Check", &m_toggleBroadPhaseMode);
 	ImGui::Text("Total Raycast Time last frame in ms: %f", m_cachedRaycastTime * 1000.f);
+
+	ImGui::Checkbox("Enable Cursor Debugging: ", &ui_debugCursorPosition);
+	m_gameCursor->SetDebugMode(ui_debugCursorPosition);
 
 	ImGui::End();
 }

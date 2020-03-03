@@ -28,6 +28,8 @@ public:
 
 	const Vec2&     GetCursorPositon() const;
 
+	void			SetDebugMode(bool debugMode);
+
 private:
 	Vec2			m_cursorPosition = Vec2::ZERO;
 	Rgba			m_cursorColor = Rgba::ORGANIC_RED;

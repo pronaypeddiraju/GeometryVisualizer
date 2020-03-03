@@ -131,13 +131,7 @@ public:
 	int ui_minRays = 1;
 	int ui_maxRays = 4096;
 
-	//Convex Geometry created in Game
-	//std::vector<ConvexPoly2D>	m_convexPolys;
-	//int							m_numPolygonsLastFrame;
-	//Rgba						m_polygonColor = Rgba::ORGANIC_GREY;
-
-	//std::vector<ConvexHull2D>	m_convexHulls;
-	//int							m_numHullsLastFrame;
+	bool ui_debugCursorPosition = false;
 
 	//Geometry Objects repository
 	std::vector<Geometry>		m_geometry;
