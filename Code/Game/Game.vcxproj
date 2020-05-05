@@ -205,6 +205,7 @@
       <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ShowIncludes>
       <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ShowIncludes>
     </ClCompile>
+    <ClCompile Include="SceneCooker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.hpp" />
@@ -214,6 +215,7 @@
     <ClInclude Include="GameCommon.hpp" />
     <ClInclude Include="GameCursor.hpp" />
     <ClInclude Include="Geometry.hpp" />
+    <ClInclude Include="SceneCooker.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Submodule\Engine\Code\Engine\Engine.vcxproj">

@@ -35,6 +35,7 @@
 
 //Game systems
 #include "Game/GameCursor.hpp"
+#include "SceneCooker.hpp"
 
 
 //Globals
@@ -57,14 +58,25 @@ Game::Game()
 	g_debugRenderer->SetDebugFont(m_squirrelFont);
 
 	g_devConsole->PrintString(Rgba::BLUE, "this is a test string");
+
+	m_cooker = new SceneCooker(this, m_loadPath, m_savePath);
+	if (m_loadAllowed)
+	{
+		m_cooker->InitiateLoadingSequence();
+	}
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
 Game::~Game()
 {
-	m_isGameAlive = false;
 	delete m_mainCamera;
 	m_mainCamera = nullptr;
+
+	delete m_devConsoleCamera;
+	m_devConsoleCamera = nullptr;
+
+	delete m_gameCursor;
+	m_gameCursor = nullptr;
 }
 
 //------------------------------------------------------------------------------------------------
@@ -245,7 +257,15 @@ void Game::StartUp()
 
 	Vec2 orthoBottomLeft = Vec2(0.f,0.f);
 	Vec2 orthoTopRight = Vec2(WORLD_WIDTH, WORLD_HEIGHT);
-	m_mainCamera->SetOrthoView(orthoBottomLeft, orthoTopRight);
+	if (!m_loadedFromCookedData)
+	{
+		m_mainCamera->SetOrthoView(orthoBottomLeft, orthoTopRight);
+	}
+	else
+	{
+		m_mainCamera->SetOrthoView(m_orthoMinsRead, m_orthoMaxsRead);
+	}
+
 
 	//Get the Shader
 	m_shader = g_renderContext->CreateOrGetShaderFromFile(m_xmlShaderPath);
@@ -263,7 +283,11 @@ void Game::StartUp()
 
 	//Generate Random Convex Polygons to render on screen
 	
-	CreateConvexGeometry(INIT_NUM_POLYGONS);
+	if (!m_loadedFromCookedData)
+	{
+		CreateConvexGeometry(INIT_NUM_POLYGONS);
+	}
+	
 	CreateRaycasts(INIT_NUM_RAYCASTS);
 
 	//Setup the render ray
@@ -330,6 +354,8 @@ UNITTEST("BinaryFileRead", "FileUtils", 1)
 	{
 		return false;
 	}
+
+	DebuggerPrintf("\n Binary File Read Unit Test \n");
 
 	for (int i = 0; i < testReadBuffer.size(); i++)
 	{
@@ -469,11 +495,7 @@ void Game::UpdateVisualRay()
 //------------------------------------------------------------------------------------------------------------------------------
 void Game::ShutDown()
 {
-	delete m_mainCamera;
-	m_mainCamera = nullptr;
-
-	delete m_devConsoleCamera;
-	m_devConsoleCamera = nullptr;
+	m_cooker->InitiateWriteSequence();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -689,6 +711,7 @@ void Game::Render() const
 	//Setup what we are rendering to
 	m_mainCamera->SetColorTarget(colorTargetView);
 	m_devConsoleCamera->SetColorTarget(colorTargetView);
+	m_mainCamera->SetViewport(Vec2::ZERO, Vec2::ONE);
 
 	g_renderContext->BeginCamera(*m_mainCamera);
 
@@ -829,7 +852,7 @@ void Game::CheckRaycastsBroadPhase()
 
 	double totalEndTime = GetCurrentTimeSeconds();
 	m_cachedRaycastTime = (float)(totalEndTime - totalStartTime);
-	DebuggerPrintf("\n Total Time for Raycasts this frame: %f", m_cachedRaycastTime);
+	//DebuggerPrintf("\n Total Time for Raycasts this frame: %f", m_cachedRaycastTime);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -1120,6 +1143,18 @@ STATIC Vec2 Game::GetClientToWorldPosition2D( IntVec2 mousePosInClient, IntVec2 
 	float posOnY = RangeMapFloat(static_cast<float>(mousePosInClient.y), static_cast<float>(ClientBounds.y), 0.f, 0.f, WORLD_HEIGHT);
 
 	return Vec2(posOnX, posOnY);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+std::vector<Geometry>& Game::GetAllGameGeometry()
+{
+	return m_geometry;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+void Game::SetAllGameGeometry(std::vector<Geometry>& geometry)
+{
+	m_geometry = geometry;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------

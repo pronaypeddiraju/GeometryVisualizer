@@ -22,6 +22,7 @@ class GameCursor;
 class Geometry;
 class Shader;
 class Trigger2D;
+class SceneCooker;
 struct Camera;
 struct IntVec2;
 
@@ -60,6 +61,10 @@ public:
 
 	static Vec2				GetClientToWorldPosition2D(IntVec2 mousePosInClient, IntVec2 ClientBounds);
 
+	//for load and save
+	std::vector<Geometry>&	GetAllGameGeometry();
+	void					SetAllGameGeometry(std::vector<Geometry>& geometry);
+
 private:
 	void					CreateConvexGeometry(int numPolygons);
 	void					CreateRaycasts(int numRaycasts);
@@ -89,11 +94,16 @@ private:
 	void					ReRandomize();
 private:
 
+	bool					m_loadAllowed = true;
+
 	bool					m_isGameAlive = false;
 	bool					m_consoleDebugOnce = false;
 	bool					m_toggleBroadPhaseMode = true;
 
 public:
+
+	Vec2					m_orthoMinsRead;
+	Vec2					m_orthoMaxsRead;
 
 	BitmapFont*				m_squirrelFont = nullptr;
 	GameCursor*				m_gameCursor = nullptr;
@@ -156,4 +166,12 @@ public:
 	//Broad Phase Optimization
 	BitFieldBroadPhase			m_broadPhaseChecker;
 	float						m_cachedRaycastTime;
+
+	SceneCooker*				m_cooker = nullptr;
+
+	//Loading and saving custom file format
+	std::string					m_loadPath = "Data/Gameplay/Pronay.ghcs";
+	std::string					m_savePath = "Data/Gameplay/Pronay.ghcs";
+
+	bool						m_loadedFromCookedData = false;
 };

@@ -28,6 +28,13 @@ Geometry::Geometry(const std::vector<Plane2D>& constructPlanes)
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+Geometry::Geometry(const ConvexPoly2D& poly, const ConvexHull2D& hull)
+{
+	m_convexHull = hull;
+	m_convexPoly = poly;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 Geometry::~Geometry()
 {
 	
